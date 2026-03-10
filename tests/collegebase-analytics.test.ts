@@ -167,6 +167,69 @@ describe("collegebase analytics domain", () => {
     expect(snapshot.availableMajors.map((item) => item.label)).toContain("Computer Science");
   });
 
+  it("repairs legacy score scales instead of rejecting the dataset", () => {
+    const dataset = parseCollegebaseAnalyticsDataset({
+      records: [
+        {
+          sourceId: "legacy111",
+          listName: "all",
+          sourceCardIndex: 1,
+          applicationYearLabel: "2017",
+          overview: {
+            badges: [],
+            intendedMajors: ["Economics"],
+          },
+          academics: {
+            satComposite: 2360,
+            unweightedGpa: 96,
+            weightedGpa: 102,
+            rawItems: {
+              SAT: "2360",
+              "Unweighted GPA": "96",
+              "Weighted GPA": "102",
+            },
+          },
+          extracurricularItems: [],
+          awardItems: [],
+          acceptanceSchoolNames: ["Brown University"],
+          otherSections: {},
+        },
+        {
+          sourceId: "legacy222",
+          listName: "all",
+          sourceCardIndex: 2,
+          applicationYearLabel: "2021",
+          overview: {
+            badges: [],
+            intendedMajors: ["Computer Science"],
+          },
+          academics: {
+            satComposite: 31,
+            rawItems: {
+              SAT: "31",
+              ACT: "None",
+            },
+          },
+          extracurricularItems: [],
+          awardItems: [],
+          acceptanceSchoolNames: [],
+          otherSections: {
+            Rejections: {
+              kind: "list",
+              value: ["Stanford University"],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(dataset.records[0].academics.satComposite).toBe(1573);
+    expect(dataset.records[0].academics.unweightedGpa).toBe(3.84);
+    expect(dataset.records[0].academics.weightedGpa).toBe(4.08);
+    expect(dataset.records[1].academics.satComposite).toBeUndefined();
+    expect(dataset.records[1].academics.actComposite).toBe(31);
+  });
+
   it("throws a clear error when the dataset file is missing", async () => {
     await expect(
       loadCollegebaseAnalyticsDatasetFromFile("/tmp/does-not-exist-collegebase.json"),

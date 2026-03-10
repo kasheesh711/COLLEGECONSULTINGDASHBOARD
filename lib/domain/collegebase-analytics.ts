@@ -136,10 +136,10 @@ const rawApplicantSchema = z.object({
     .default({ badges: [], intendedMajors: [] }),
   academics: z
     .object({
-      satComposite: z.coerce.number().int().min(200).max(1600).optional(),
-      actComposite: z.coerce.number().int().min(1).max(36).optional(),
-      unweightedGpa: z.coerce.number().min(0).max(5).optional(),
-      weightedGpa: z.coerce.number().min(0).max(6).optional(),
+      satComposite: z.coerce.number().int().positive().optional(),
+      actComposite: z.coerce.number().int().positive().optional(),
+      unweightedGpa: z.coerce.number().positive().optional(),
+      weightedGpa: z.coerce.number().positive().optional(),
       classRankDisplay: z.string().optional(),
       classRankNumerator: z.coerce.number().int().positive().optional(),
       classRankDenominator: z.coerce.number().int().positive().optional(),
@@ -235,26 +235,85 @@ function getTextSection(
   return section?.kind === "text" ? section.value : undefined;
 }
 
-function formatScoreLabel(record: RawApplicantRecord) {
+function roundToTwo(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function sanitizeGpa(value: number | undefined, max: number) {
+  if (value == null || Number.isNaN(value) || value <= 0) return undefined;
+  if (value <= max) return roundToTwo(value);
+
+  // Some legacy records store GPA on a 100-point scale.
+  const normalized = value <= 120 ? value / 25 : undefined;
+  if (normalized == null || normalized <= 0 || normalized > max) return undefined;
+
+  return roundToTwo(normalized);
+}
+
+function sanitizeAcademics(
+  academics: RawApplicantRecord["academics"],
+): CollegebaseApplicantRecord["academics"] {
+  let satComposite = academics.satComposite;
+  let actComposite = academics.actComposite;
+
+  // Some legacy rows put ACT into the SAT slot when ACT is otherwise empty.
+  if (satComposite != null && satComposite < 200 && actComposite == null && satComposite <= 36) {
+    actComposite = satComposite;
+    satComposite = undefined;
+  }
+
+  // Pre-2016 SAT values still show up on the 2400-point scale in older exports.
+  if (satComposite != null && satComposite > 1600) {
+    satComposite = satComposite <= 2400 ? Math.round((satComposite * 2) / 3) : undefined;
+  }
+
+  if (satComposite != null && (satComposite < 200 || satComposite > 1600)) {
+    satComposite = undefined;
+  }
+
+  if (actComposite != null && (actComposite < 1 || actComposite > 36)) {
+    actComposite = undefined;
+  }
+
+  return {
+    ...academics,
+    satComposite,
+    actComposite,
+    unweightedGpa: sanitizeGpa(academics.unweightedGpa, 5),
+    weightedGpa: sanitizeGpa(academics.weightedGpa, 6),
+  };
+}
+
+function formatScoreLabel(academics: Pick<
+  CollegebaseApplicantRecord["academics"],
+  "satComposite" | "actComposite" | "unweightedGpa"
+>) {
   const parts: string[] = [];
 
-  if (record.academics.satComposite != null) {
-    parts.push(`SAT ${record.academics.satComposite}`);
+  if (academics.satComposite != null) {
+    parts.push(`SAT ${academics.satComposite}`);
   }
-  if (record.academics.actComposite != null) {
-    parts.push(`ACT ${record.academics.actComposite}`);
+  if (academics.actComposite != null) {
+    parts.push(`ACT ${academics.actComposite}`);
   }
-  if (record.academics.unweightedGpa != null) {
-    parts.push(`GPA ${record.academics.unweightedGpa.toFixed(2)}`);
+  if (academics.unweightedGpa != null) {
+    parts.push(`GPA ${academics.unweightedGpa.toFixed(2)}`);
   }
 
   return parts.join(" • ");
 }
 
-function formatProfileLabel(record: RawApplicantRecord, normalizedMajors: string[]) {
+function formatProfileLabel(
+  record: Pick<RawApplicantRecord, "applicationYearLabel" | "sourceId">,
+  normalizedMajors: string[],
+  academics: Pick<
+    CollegebaseApplicantRecord["academics"],
+    "satComposite" | "actComposite" | "unweightedGpa"
+  >,
+) {
   const parts = [record.applicationYearLabel ?? "Unknown year"];
   const majorLabel = normalizedMajors.slice(0, 2).join(" / ");
-  const scoreLabel = formatScoreLabel(record);
+  const scoreLabel = formatScoreLabel(academics);
 
   if (majorLabel) parts.push(majorLabel);
   if (scoreLabel) parts.push(scoreLabel);
@@ -328,15 +387,17 @@ function buildApplicantRecord(
   canonicalMap: Map<string, string>,
 ): CollegebaseApplicantRecord {
   const normalizedMajors = normalizeMajors(record, canonicalMap);
-  const scoreLabel = formatScoreLabel(record);
+  const academics = sanitizeAcademics(record.academics);
+  const scoreLabel = formatScoreLabel(academics);
 
   return {
     ...record,
+    academics,
     acceptanceSchoolNames: dedupeStrings(record.acceptanceSchoolNames),
     normalizedMajors,
     schoolOutcomes: buildSchoolOutcomes(record),
     waitlistSchoolNames: dedupeStrings(getListSection(record.otherSections, "Waitlists")),
-    profileLabel: formatProfileLabel(record, normalizedMajors),
+    profileLabel: formatProfileLabel(record, normalizedMajors, academics),
     profileSubtitle:
       scoreLabel ||
       getTextSection(record.otherSections, "Assigned Category") ||

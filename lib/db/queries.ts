@@ -259,6 +259,110 @@ type ProfileOption = {
   }> | null;
 };
 
+const FULL_INTERNAL_FAMILY_SELECT = `
+      id,
+      slug,
+      student_name,
+      parent_contact_name,
+      pathway,
+      tier,
+      strategist_owner_id,
+      ops_owner_id,
+      current_phase,
+      overall_status,
+      status_reason,
+      created_date,
+      last_updated_date,
+      strategist:profiles!families_strategist_owner_id_fkey(full_name),
+      ops:profiles!families_ops_owner_id_fkey(full_name),
+      family_contacts(id, full_name, email, relationship, is_primary, user_id),
+      students(
+        id,
+        family_id,
+        slug,
+        student_name,
+        grade_level,
+        pathway,
+        tier,
+        current_phase,
+        overall_status,
+        status_reason,
+        created_date,
+        last_updated_date,
+        student_testing_profiles(id, current_sat, projected_sat, current_act, projected_act, strategy_note),
+        student_activity_items(id, activity_name, role, impact_summary, sort_order),
+        student_competition_items(id, competition_name, result, year_label, sort_order),
+        student_school_targets(id, school_name, country, bucket, fit_note, sort_order)
+      ),
+      monthly_summaries(id, student_id, reporting_month, biggest_win, biggest_risk, top_next_action_1, top_next_action_2, top_next_action_3, parent_visible_summary, internal_summary_notes),
+      academic_updates(id, student_id, date, subject_priority, grade_or_predicted_trend, tutoring_status, tutor_note_summary, test_prep_status, parent_visible),
+      profile_updates(id, student_id, date, project_name, milestone_status, evidence_added, mentor_note_summary, parent_visible),
+      tasks(id, student_id, item_name, category, owner, due_date, status, dependency_notes, parent_visible),
+      decision_log_items(id, student_id, date, decision_type, summary, owner, pending_family_input, status, parent_visible),
+      notes(id, student_id, date, author_role, note_type, summary, body, visibility),
+      artifact_links(id, student_id, artifact_name, artifact_type, link_url, upload_date, owner, parent_visible),
+      family_college_strategy_profiles(id, family_id, current_sat, projected_sat, current_act, projected_act, intended_major_codes, intended_major_labels, strategy_note),
+      family_college_lists(
+        id,
+        family_id,
+        list_name,
+        is_current,
+        created_by,
+        created_at,
+        updated_at,
+        family_college_list_items(
+          id,
+          family_college_list_id,
+          scorecard_school_id,
+          school_name,
+          city,
+          state,
+          ownership,
+          student_size,
+          admission_rate,
+          sat_average,
+          completion_rate,
+          retention_rate,
+          average_net_price,
+          median_earnings,
+          matched_program_codes,
+          matched_program_labels,
+          bucket,
+          bucket_source,
+          fit_score,
+          fit_rationale,
+          counselor_note,
+          sort_order
+        )
+      )
+    `;
+
+const LEGACY_INTERNAL_FAMILY_SELECT = `
+      id,
+      slug,
+      student_name,
+      parent_contact_name,
+      pathway,
+      tier,
+      strategist_owner_id,
+      ops_owner_id,
+      current_phase,
+      overall_status,
+      status_reason,
+      created_date,
+      last_updated_date,
+      strategist:profiles!families_strategist_owner_id_fkey(full_name),
+      ops:profiles!families_ops_owner_id_fkey(full_name),
+      family_contacts(id, full_name, email, relationship, is_primary, user_id),
+      monthly_summaries(id, reporting_month, biggest_win, biggest_risk, top_next_action_1, top_next_action_2, top_next_action_3, parent_visible_summary, internal_summary_notes),
+      academic_updates(id, date, subject_priority, grade_or_predicted_trend, tutoring_status, tutor_note_summary, test_prep_status, parent_visible),
+      profile_updates(id, date, project_name, milestone_status, evidence_added, mentor_note_summary, parent_visible),
+      tasks(id, item_name, category, owner, due_date, status, dependency_notes, parent_visible),
+      decision_log_items(id, date, decision_type, summary, owner, pending_family_input, status, parent_visible),
+      notes(id, date, author_role, note_type, summary, body, visibility),
+      artifact_links(id, artifact_name, artifact_type, link_url, upload_date, owner, parent_visible)
+    `;
+
 function mapFamilyContacts(contacts: RawFamilyContact[] = []): FamilyContact[] {
   return contacts.map((contact) => ({
     id: contact.id,
@@ -268,6 +372,40 @@ function mapFamilyContacts(contacts: RawFamilyContact[] = []): FamilyContact[] {
     isPrimary: contact.is_primary,
     userId: contact.user_id ?? undefined,
   }));
+}
+
+type PostgrestLikeError = {
+  code?: string | null;
+  details?: string | null;
+  hint?: string | null;
+  message?: string | null;
+};
+
+export function isRecoverableLiveFamiliesError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const candidate = error as PostgrestLikeError;
+  const haystack = [candidate.code, candidate.details, candidate.hint, candidate.message]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (!haystack) return false;
+
+  const schemaSignals = [
+    "public.students",
+    "students",
+    "student_id",
+    "family_college_lists",
+    "family_college_strategy_profiles",
+    "student_testing_profiles",
+    "student_activity_items",
+    "student_competition_items",
+    "student_school_targets",
+    "schema cache",
+  ];
+
+  return schemaSignals.some((signal) => haystack.includes(signal));
 }
 
 function getProfileName(profile: RawProfileJoin | undefined, fallback: string) {
@@ -560,89 +698,25 @@ function mapFamilyRecord(record: RawFamilyRecord): FamilyWorkspace {
   };
 }
 
-async function fetchLiveInternalFamilies(): Promise<FamilyWorkspace[]> {
+async function fetchFamilyRecords(selectClause: string): Promise<RawFamilyRecord[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.from("families").select(`
-      id,
-      slug,
-      student_name,
-      parent_contact_name,
-      pathway,
-      tier,
-      strategist_owner_id,
-      ops_owner_id,
-      current_phase,
-      overall_status,
-      status_reason,
-      created_date,
-      last_updated_date,
-      strategist:profiles!families_strategist_owner_id_fkey(full_name),
-      ops:profiles!families_ops_owner_id_fkey(full_name),
-      family_contacts(id, full_name, email, relationship, is_primary, user_id),
-      students(
-        id,
-        family_id,
-        slug,
-        student_name,
-        grade_level,
-        pathway,
-        tier,
-        current_phase,
-        overall_status,
-        status_reason,
-        created_date,
-        last_updated_date,
-        student_testing_profiles(id, current_sat, projected_sat, current_act, projected_act, strategy_note),
-        student_activity_items(id, activity_name, role, impact_summary, sort_order),
-        student_competition_items(id, competition_name, result, year_label, sort_order),
-        student_school_targets(id, school_name, country, bucket, fit_note, sort_order)
-      ),
-      monthly_summaries(id, student_id, reporting_month, biggest_win, biggest_risk, top_next_action_1, top_next_action_2, top_next_action_3, parent_visible_summary, internal_summary_notes),
-      academic_updates(id, student_id, date, subject_priority, grade_or_predicted_trend, tutoring_status, tutor_note_summary, test_prep_status, parent_visible),
-      profile_updates(id, student_id, date, project_name, milestone_status, evidence_added, mentor_note_summary, parent_visible),
-      tasks(id, student_id, item_name, category, owner, due_date, status, dependency_notes, parent_visible),
-      decision_log_items(id, student_id, date, decision_type, summary, owner, pending_family_input, status, parent_visible),
-      notes(id, student_id, date, author_role, note_type, summary, body, visibility),
-      artifact_links(id, student_id, artifact_name, artifact_type, link_url, upload_date, owner, parent_visible),
-      family_college_strategy_profiles(id, family_id, current_sat, projected_sat, current_act, projected_act, intended_major_codes, intended_major_labels, strategy_note),
-      family_college_lists(
-        id,
-        family_id,
-        list_name,
-        is_current,
-        created_by,
-        created_at,
-        updated_at,
-        family_college_list_items(
-          id,
-          family_college_list_id,
-          scorecard_school_id,
-          school_name,
-          city,
-          state,
-          ownership,
-          student_size,
-          admission_rate,
-          sat_average,
-          completion_rate,
-          retention_rate,
-          average_net_price,
-          median_earnings,
-          matched_program_codes,
-          matched_program_labels,
-          bucket,
-          bucket_source,
-          fit_score,
-          fit_rationale,
-          counselor_note,
-          sort_order
-        )
-      )
-    `);
+  const { data, error } = await supabase.from("families").select(selectClause);
 
   if (error) throw error;
 
-  return ((data ?? []) as unknown as RawFamilyRecord[]).map(mapFamilyRecord);
+  return (data ?? []) as unknown as RawFamilyRecord[];
+}
+
+async function fetchLiveInternalFamilies(): Promise<FamilyWorkspace[]> {
+  try {
+    return (await fetchFamilyRecords(FULL_INTERNAL_FAMILY_SELECT)).map(mapFamilyRecord);
+  } catch (error) {
+    if (!isRecoverableLiveFamiliesError(error)) {
+      throw error;
+    }
+
+    return (await fetchFamilyRecords(LEGACY_INTERNAL_FAMILY_SELECT)).map(mapFamilyRecord);
+  }
 }
 
 function filterFamiliesForActorScope(families: FamilyWorkspace[], actor?: InternalAccess) {
