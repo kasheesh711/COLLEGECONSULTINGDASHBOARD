@@ -94,6 +94,7 @@ Notes:
 
 - A parent user is linked at the household level through `family_contacts.user_id`.
 - One household can hold multiple parent contacts; one should remain primary.
+- Parent contact rows should auto-link by email when a seeded or invited parent profile completes sign-in.
 
 ### `student_testing_profiles`
 
@@ -314,7 +315,6 @@ Constraints:
 - `families`: ops can read all; strategist can read assigned families; parent reads only linked family through household contact linkage.
 - `students`: ops can read all; strategist can read students in assigned families; parent reads only parent-safe subsets through the linked household.
 - `family_contacts`: ops and assigned strategist can read/write; parent can read only their own row if needed later.
-- `student_testing_profiles`, `student_activity_items`, `student_competition_items`, `student_school_targets`, `monthly_summaries`, `academic_updates`, `profile_updates`, `tasks`, `decision_log_items`, `notes`, `artifact_links`:
 - `family_college_strategy_profiles`, `family_college_lists`, `family_college_list_items`:
   - internal roles can read/write within assigned family scope
   - parent has no access
@@ -322,6 +322,11 @@ Constraints:
   - internal roles can read/write within assigned family scope
   - parents can read only rows for their linked family
   - parents can read only parent-safe subsets where applicable
+
+## Parent-safe projections
+
+- `app.parent_portal_students` exposes safe student headers without internal-only posture notes.
+- `app.parent_portal_monthly_summaries`, `app.parent_portal_tasks`, `app.parent_portal_decision_log_items`, `app.parent_portal_artifact_links`, `app.parent_portal_academic_updates`, and `app.parent_portal_profile_updates` include nullable `student_id` so the portal can group student-scoped records while still handling family-wide records.
 
 Recommended implementation:
 

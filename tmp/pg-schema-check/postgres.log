@@ -1,0 +1,8 @@
+2026-03-10 19:50:57.200 +07 [49206] LOG:  starting PostgreSQL 14.17 (Homebrew) on aarch64-apple-darwin24.2.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.6), 64-bit
+2026-03-10 19:50:57.204 +07 [49206] LOG:  listening on IPv6 address "::1", port 55432
+2026-03-10 19:50:57.204 +07 [49206] LOG:  listening on IPv4 address "127.0.0.1", port 55432
+2026-03-10 19:50:57.205 +07 [49206] LOG:  listening on Unix socket "/tmp/.s.PGSQL.55432"
+2026-03-10 19:50:57.209 +07 [49215] LOG:  database system was shut down at 2026-03-10 19:50:57 +07
+2026-03-10 19:50:57.212 +07 [49206] LOG:  database system is ready to accept connections
+2026-03-10 19:50:57.791 +07 [49206] LOG:  received immediate shutdown request
+2026-03-10 19:50:57.794 +07 [49206] LOG:  database system is shut down

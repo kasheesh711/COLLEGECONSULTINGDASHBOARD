@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  analyticsFiltersSchema,
   collegeSearchFiltersSchema,
   createStudentSchema,
   familyWithStudentSchema,
@@ -148,5 +149,26 @@ describe("schema validation", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("parses analytics filters with GPA decimals and outcome toggles", () => {
+    const result = analyticsFiltersSchema.safeParse({
+      school: "Yale University",
+      major: "Computer Science",
+      gpaMin: "3.75",
+      gpaMax: "4.0",
+      satMin: "1450",
+      actMax: "35",
+      metric: "act",
+      outcome: "accepted",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.gpaMin).toBe(3.75);
+    expect(result.data?.gpaMax).toBe(4);
+    expect(result.data?.satMin).toBe(1450);
+    expect(result.data?.actMax).toBe(35);
+    expect(result.data?.metric).toBe("act");
+    expect(result.data?.outcome).toBe("accepted");
   });
 });

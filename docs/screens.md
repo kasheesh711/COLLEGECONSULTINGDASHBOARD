@@ -8,6 +8,8 @@
 - `/families`: internal household roster
 - `/families/new`: create family + first student
 - `/families/[id]`: family workspace
+- `/analytics`: internal Collegebase applicant analytics
+- `/analytics/applicants/[sourceId]`: extracted applicant drill-down
 - `/colleges`: internal College Scorecard explorer
 - `/students/new`: add student to an existing family
 - `/students/[id]`: student 360 portfolio
@@ -159,6 +161,29 @@ Behavior:
 - URL query params are the source of truth for search state
 - `selected=<scorecardSchoolId>` swaps the featured preview without leaving the page
 - when a current family list exists, the selected preview can be added directly to that list
+
+## `/analytics`
+
+Audience:
+
+- strategist
+- ops
+
+Layout:
+
+- editorial analytics hero
+- sticky filter rail for school, intended major, GPA, SAT, and ACT
+- accepted versus rejected summary band
+- school landscape roster
+- school-specific scatter plot and applicant drill-down roster when a university is selected
+
+Behavior:
+
+- internal-only and file-backed from the local normalized Collegebase export
+- URL query params are the source of truth for the search state
+- averages use applicant-level SAT, ACT, and unweighted GPA
+- waitlists do not count toward accepted versus rejected comparisons
+- applicant drill-down opens a dedicated extracted-profile page because the source data has no student names
 
 ## `/students/new`
 

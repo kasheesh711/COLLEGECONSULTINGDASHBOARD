@@ -16,6 +16,12 @@ const optionalIntegerString = z
   .optional()
   .transform((value) => (value ? Number(value) : undefined))
   .pipe(z.number().int().optional());
+const optionalDecimalString = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => (value ? Number(value) : undefined))
+  .pipe(z.number().optional());
 
 export const studentCoreSchema = z.object({
   studentName: z.string().min(2),
@@ -241,4 +247,18 @@ export const collegeSearchFiltersSchema = z.object({
   page: z.coerce.number().int().min(0).optional(),
   perPage: z.coerce.number().int().min(1).max(20).optional(),
   selected: z.coerce.number().int().positive().optional(),
+});
+
+export const analyticsFiltersSchema = z.object({
+  school: z.string().trim().optional(),
+  schoolQuery: z.string().trim().optional(),
+  major: z.string().trim().optional(),
+  gpaMin: optionalDecimalString,
+  gpaMax: optionalDecimalString,
+  satMin: optionalIntegerString,
+  satMax: optionalIntegerString,
+  actMin: optionalIntegerString,
+  actMax: optionalIntegerString,
+  metric: z.enum(["sat", "act"]).optional(),
+  outcome: z.enum(["all", "accepted", "rejected"]).optional(),
 });

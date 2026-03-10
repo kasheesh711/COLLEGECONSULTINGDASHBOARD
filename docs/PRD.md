@@ -28,6 +28,7 @@ A strategist or ops lead should be able to:
 - triage urgent students from `/dashboard`
 - compare households quickly on `/families`
 - open `/families/[id]` for household context and coordination
+- query extracted admissions outcomes on `/analytics`
 - open `/colleges` for live College Scorecard research
 - open `/students/[id]` for deep strategy work on one student
 - create families and add students without leaving the app
@@ -90,6 +91,14 @@ A parent should be able to:
 - Server-side search across bachelor’s-dominant institutions
 - Controlled CIP-4 major filtering
 - Direct add-to-list flow when opened in family context
+
+### Applicant analytics
+
+- Internal-only Collegebase analytics workspace
+- File-backed querying by school, intended major, GPA, SAT, and ACT
+- Accepted versus rejected averages at the filtered school view
+- School-specific SAT/ACT versus GPA scatter plot
+- Dedicated extracted-profile drill-down for underlying applicant records
 
 ### Student 360 portfolio
 

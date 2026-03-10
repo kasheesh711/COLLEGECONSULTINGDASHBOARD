@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  ChartColumn,
   Files,
   GraduationCap,
   House,
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/", label: "Workspace", icon: House },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/families", label: "Families", icon: Users },
+  { href: "/analytics", label: "Analytics", icon: ChartColumn },
   { href: "/colleges", label: "Colleges", icon: School },
   { href: "/students/new", label: "Students", icon: GraduationCap },
   { href: "/portal", label: "Parent Portal", icon: Files },

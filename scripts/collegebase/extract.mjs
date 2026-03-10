@@ -1,20 +1,24 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
-  readdirSync,
+  mkdtempSync,
   readFileSync,
-  renameSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { chromium } from "playwright";
 
 const COLLEGEBASE_APP_URL = "https://app.collegebase.org/";
+const COLLEGEBASE_APPLICANT_PROFILES_URL = new URL(
+  "data/applicantProfiles.json",
+  COLLEGEBASE_APP_URL,
+).toString();
 const RAW_OUTPUT_PATH = path.join(
   process.cwd(),
   "tmp/collegebase/collegebase-applications.raw.json",
@@ -23,13 +27,26 @@ const NORMALIZED_OUTPUT_PATH = path.join(
   process.cwd(),
   "tmp/collegebase/collegebase-applications.normalized.json",
 );
+const DEBUG_OUTPUT_PATH = path.join(
+  process.cwd(),
+  "tmp/collegebase/collegebase-applications.debug.json",
+);
 const ATLAS_CLI_PATH = path.join(
   process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex"),
   "skills/atlas/scripts/atlas_cli.py",
 );
-const DOWNLOAD_PREFIX = "collegebase-applications-raw-";
-const DOWNLOAD_TIMEOUT_MS = 120_000;
-const POLL_INTERVAL_MS = 1_000;
+const ATLAS_BROWSER_DATA_ROOT = path.join(
+  os.homedir(),
+  "Library/Application Support/com.openai.atlas/browser-data/host",
+);
+const MIN_EXPECTED_CARD_COUNT = Number.parseInt(
+  process.env.COLLEGEBASE_MIN_CARD_COUNT ?? "1122",
+  10,
+);
+const NAVIGATION_TIMEOUT_MS = 120_000;
+const SHOW_MORE_WAIT_MS = 15_000;
+const NETWORK_FETCH_TIMEOUT_MS = 30_000;
+const RETRYABLE_STATUS_CODES = new Set([401, 403, 500, 502, 503, 504]);
 
 function normalizeWhitespace(value) {
   return String(value ?? "")
@@ -492,393 +509,636 @@ function focusAtlasTab(windowId, tabIndex) {
   ]);
 }
 
-function getActiveTabState() {
-  const script = [
-    'tell application "ChatGPT Atlas"',
-    "set i to active tab index of front window",
-    'return (URL of tab i of front window) & linefeed & (title of tab i of front window)',
-    "end tell",
-  ].join("\n");
-  const output = runCommand("osascript", ["-"], { input: script });
-  const [url = "", title = ""] = output.split(/\r?\n/);
-  return {
-    url: normalizeWhitespace(url),
-    title: normalizeWhitespace(title),
-  };
-}
-
-function escapeAppleScriptString(value) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-function clickJavaScriptIntoAtlas(payload) {
-  const previousClipboard = runCommand("pbpaste", []);
-  runCommand("pbcopy", [], { input: payload });
-
-  const script = [
-    'tell application "ChatGPT Atlas" to activate',
-    'tell application "System Events"',
-    'tell process "ChatGPT Atlas"',
-    "set frontmost to true",
-    "end tell",
-    "end tell",
-    "delay 0.5",
-    'tell application "System Events"',
-    'keystroke "l" using command down',
-    "delay 0.15",
-    'keystroke "v" using command down',
-    "delay 0.15",
-    "key code 36",
-    "end tell",
-  ].join("\n");
-
-  try {
-    runCommand("osascript", ["-"], { input: script });
-  } catch (error) {
-    const message = normalizeWhitespace(error.message);
-    if (
-      message.includes("Not authorised") ||
-      message.includes("not allowed assistive access")
-    ) {
-      throw new Error(
-        "macOS blocked Atlas automation. Grant Terminal Automation access for ChatGPT Atlas and Accessibility access for System Events, then rerun.",
-      );
-    }
-    throw error;
-  } finally {
-    runCommand("pbcopy", [], { input: previousClipboard });
-  }
-}
-
-function latestMatchingDownload(startedAtMs) {
-  const downloadsDir = path.join(os.homedir(), "Downloads");
-  if (!existsSync(downloadsDir)) {
-    return null;
-  }
-
-  const candidates = readdirSync(downloadsDir)
-    .filter(
-      (name) => name.startsWith(DOWNLOAD_PREFIX) && name.endsWith(".json"),
-    )
-    .map((name) => {
-      const absolutePath = path.join(downloadsDir, name);
-      const stats = statSync(absolutePath);
-      return {
-        absolutePath,
-        modifiedMs: stats.mtimeMs,
-      };
-    })
-    .filter((entry) => entry.modifiedMs >= startedAtMs)
-    .sort((left, right) => right.modifiedMs - left.modifiedMs);
-
-  return candidates[0]?.absolutePath ?? null;
+function ensureOutputDirectory() {
+  mkdirSync(path.dirname(RAW_OUTPUT_PATH), { recursive: true });
 }
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForDownloadOrError(startedAtMs) {
-  const deadline = Date.now() + DOWNLOAD_TIMEOUT_MS;
+function sanitizeUrlForDebug(value) {
+  try {
+    const parsed = new URL(value);
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return String(value).split("?")[0];
+  }
+}
 
-  while (Date.now() <= deadline) {
-    const downloadPath = latestMatchingDownload(startedAtMs);
-    if (downloadPath) {
-      return downloadPath;
+function summarizeJsonValue(value, depth = 0) {
+  if (value == null) {
+    return value;
+  }
+  if (depth >= 2) {
+    if (Array.isArray(value)) {
+      return { type: "array", length: value.length };
     }
-
-    const tabState = getActiveTabState();
-    if (tabState.title.startsWith("__COLLEGEBASE_EXPORT_ERROR__ ")) {
-      const message = tabState.title.replace("__COLLEGEBASE_EXPORT_ERROR__ ", "");
-      throw new Error(message);
+    if (typeof value === "object") {
+      return { type: "object", keys: Object.keys(value).slice(0, 12) };
     }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return {
+      type: "array",
+      length: value.length,
+      first: value.length ? summarizeJsonValue(value[0], depth + 1) : null,
+    };
+  }
+  if (typeof value === "object") {
+    const summary = {};
+    for (const key of Object.keys(value).slice(0, 12)) {
+      summary[key] = summarizeJsonValue(value[key], depth + 1);
+    }
+    return summary;
+  }
+  return value;
+}
 
-    await sleep(POLL_INTERVAL_MS);
+function getAtlasProfileInfo() {
+  const localStatePath = path.join(ATLAS_BROWSER_DATA_ROOT, "Local State");
+  if (!existsSync(localStatePath)) {
+    throw new Error(
+      `Atlas browser profile was not found at ${ATLAS_BROWSER_DATA_ROOT}.`,
+    );
   }
 
-  throw new Error(
-    "Timed out waiting for the CollegeBase export download. Confirm the Applications > All view is open in Atlas and rerun.",
+  const localState = JSON.parse(readFileSync(localStatePath, "utf8"));
+  const profileDirectory = localState.profile?.last_used ?? "Default";
+  const profilePath = path.join(ATLAS_BROWSER_DATA_ROOT, profileDirectory);
+
+  if (!existsSync(profilePath)) {
+    throw new Error(`Atlas profile directory was not found at ${profilePath}.`);
+  }
+
+  return {
+    localStatePath,
+    profileDirectory,
+    profilePath,
+  };
+}
+
+function cloneAtlasProfileToTemp() {
+  const { localStatePath, profileDirectory, profilePath } = getAtlasProfileInfo();
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "collegebase-atlas-"));
+  cpSync(localStatePath, path.join(tempRoot, "Local State"));
+  cpSync(profilePath, path.join(tempRoot, profileDirectory), { recursive: true });
+  return {
+    tempRoot,
+    profileDirectory,
+  };
+}
+
+async function launchAtlasBackedBrowser(profileDirectory, tempRoot) {
+  const context = await chromium.launchPersistentContext(tempRoot, {
+    channel: "chrome",
+    headless: false,
+    args: [`--profile-directory=${profileDirectory}`],
+    viewport: { width: 1600, height: 1200 },
+  });
+
+  const page = context.pages()[0] ?? (await context.newPage());
+  return { context, page };
+}
+
+async function installCollegebasePageHelpers(page) {
+  await page.evaluate(() => {
+    const normalize = (value) =>
+      String(value ?? "")
+        .replace(/\u00a0/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const isVisible = (element) => {
+      if (!(element instanceof HTMLElement)) {
+        return false;
+      }
+      const style = window.getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") {
+        return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+
+    const findApplicationsColumn = () =>
+      [...document.querySelectorAll("div")]
+        .filter((node) => isVisible(node))
+        .map((node) => ({
+          node,
+          rect: node.getBoundingClientRect(),
+          text: normalize(node.innerText || node.textContent || ""),
+          overflowY: window.getComputedStyle(node).overflowY,
+          scrollHeight: node.scrollHeight,
+        }))
+        .filter(
+          (entry) =>
+            entry.rect.left < 600 &&
+            entry.rect.width >= 200 &&
+            entry.rect.width <= 320 &&
+            entry.rect.height >= 600 &&
+            /(auto|scroll)/.test(entry.overflowY) &&
+            (entry.text.match(/\b20\d{2}\b/g) || []).length > 10,
+        )
+        .sort((left, right) => right.scrollHeight - left.scrollHeight)[0]?.node ??
+      null;
+
+    const getCards = () => {
+      const column = findApplicationsColumn();
+      if (!column) {
+        return [];
+      }
+      return [...column.children].filter(
+        (node) =>
+          node instanceof HTMLElement &&
+          /\b20\d{2}\b/.test(normalize(node.innerText || node.textContent || "")),
+      );
+    };
+
+    const getShowMoreClickPoint = () => {
+      const column = findApplicationsColumn();
+      if (!column) {
+        return null;
+      }
+
+      column.scrollTop = column.scrollHeight;
+
+      const target = [
+        ...column.querySelectorAll("button, [role='button'], div, span, a"),
+      ]
+        .filter((node) => isVisible(node))
+        .find((node) => normalize(node.textContent || "") === "Show More");
+
+      if (!target) {
+        return null;
+      }
+
+      const rect = target.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    };
+
+    window.__collegebaseExtractor = {
+      cardCount: () => getCards().length,
+      showMoreClickPoint: getShowMoreClickPoint,
+    };
+  });
+}
+
+async function openApplicationsTool(page) {
+  await page.goto(COLLEGEBASE_APP_URL, {
+    waitUntil: "domcontentloaded",
+    timeout: NAVIGATION_TIMEOUT_MS,
+  });
+  await page.waitForTimeout(2_500);
+
+  const applicationsLink = page.locator("p", { hasText: "Applications" }).first();
+  await applicationsLink.click();
+  await page.waitForTimeout(1_500);
+
+  const launchTool = page.getByText("Launch Tool", { exact: true }).first();
+  await launchTool.click();
+  await page.waitForTimeout(4_000);
+}
+
+function isApplicantProfileRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return (
+    "id" in value &&
+    "createdat" in value &&
+    "year" in value &&
+    "flair" in value &&
+    "demographics" in value &&
+    "academics" in value &&
+    "extracurricular_activities" in value &&
+    "awards" in value &&
+    "decisions" in value
   );
 }
 
-function ensureOutputDirectory() {
-  mkdirSync(path.dirname(RAW_OUTPUT_PATH), { recursive: true });
+export function isApplicantProfilesPayload(value) {
+  return Array.isArray(value) && value.length > 0 && isApplicantProfileRecord(value[0]);
 }
 
-function moveFile(sourcePath, destinationPath) {
-  if (existsSync(destinationPath)) {
-    rmSync(destinationPath);
+export function findApplicantProfilesCapture(captures) {
+  const exactMatch = captures.find(
+    (capture) =>
+      sanitizeUrlForDebug(capture.url) === COLLEGEBASE_APPLICANT_PROFILES_URL,
+  );
+  if (exactMatch?.json && isApplicantProfilesPayload(exactMatch.json)) {
+    return exactMatch;
   }
-  renameSync(sourcePath, destinationPath);
+
+  for (const capture of captures) {
+    if (isApplicantProfilesPayload(capture.json)) {
+      return capture;
+    }
+  }
+
+  return exactMatch;
 }
 
-function buildDownloadFileName() {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return `${DOWNLOAD_PREFIX}${timestamp}.json`;
+function createCaptureState() {
+  return {
+    captures: [],
+    requestUrlPatterns: [],
+    applicantProfilesPayload: null,
+    applicantProfilesUrl: null,
+  };
 }
 
-function buildBrowserExtractionSource(downloadFileName) {
-  const source = `
-    (async () => {
-      ${normalizeWhitespace.toString()}
-      ${readText.toString()}
-      ${dedupeStrings.toString()}
-      ${textLinesFromElement.toString()}
-      ${extractLabelValuePairsFromText.toString()}
-      ${findSectionHeadingNodes.toString()}
-      ${findSectionContainerForHeading.toString()}
-      ${extractOverviewBadges.toString()}
-      ${extractOverviewFields.toString()}
-      ${extractSectionValueFromElement.toString()}
-      ${extractRawRecordFromDetailRoot.toString()}
-
-      const DOWNLOAD_FILE_NAME = ${JSON.stringify(downloadFileName)};
-      const originalTitle = document.title;
-
-      function isVisible(element) {
-        if (!element) {
-          return false;
-        }
-        const style = window.getComputedStyle(element);
-        if (style.display === "none" || style.visibility === "hidden") {
-          return false;
-        }
-        const rect = element.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
+function attachNetworkCapture(page, captureState) {
+  page.on("response", async (response) => {
+    try {
+      const request = response.request();
+      const resourceType = request.resourceType();
+      if (!["fetch", "xhr"].includes(resourceType)) {
+        return;
       }
 
-      function wait(ms) {
-        return new Promise((resolve) => window.setTimeout(resolve, ms));
+      const url = response.url();
+      const contentType = response.headers()["content-type"] || "";
+      const capture = {
+        url,
+        method: request.method(),
+        status: response.status(),
+        type: resourceType,
+        contentType,
+      };
+
+      captureState.captures.push(capture);
+
+      const sanitizedUrl = sanitizeUrlForDebug(url);
+      if (!captureState.requestUrlPatterns.includes(sanitizedUrl)) {
+        captureState.requestUrlPatterns.push(sanitizedUrl);
       }
 
-      function findClickableByText(label) {
-        const normalized = normalizeWhitespace(label).toLowerCase();
-        return [...document.querySelectorAll("button, [role='button'], a, div, span")]
-          .filter((node) => isVisible(node))
-          .find((node) => normalizeWhitespace(node.textContent || "").toLowerCase() === normalized);
+      if (!contentType.includes("application/json")) {
+        return;
       }
 
-      function clickApplicationsAllTab() {
-        const allTab = findClickableByText("All");
-        if (!allTab) {
-          throw new Error("Unable to find the Applications filter tabs. Open the Applications view before running the extractor.");
-        }
-        allTab.click();
+      const json = await response.json().catch(() => null);
+      if (
+        sanitizeUrlForDebug(url) === COLLEGEBASE_APPLICANT_PROFILES_URL &&
+        isApplicantProfilesPayload(json)
+      ) {
+        capture.json = json;
+        capture.summary = {
+          type: "applicantProfiles",
+          count: json.length,
+        };
+        captureState.applicantProfilesPayload = json;
+        captureState.applicantProfilesUrl = url;
+        return;
       }
 
-      function findApplicationsColumn() {
-        const candidates = [...document.querySelectorAll("*")]
-          .filter((node) => node instanceof HTMLElement)
-          .filter((node) => isVisible(node))
-          .filter((node) => {
-            const style = window.getComputedStyle(node);
-            const scrollable =
-              /(auto|scroll)/.test(style.overflowY) ||
-              node.scrollHeight > node.clientHeight + 100;
-            if (!scrollable) {
-              return false;
-            }
-            const rect = node.getBoundingClientRect();
-            if (rect.width < 160 || rect.width > 420 || rect.height < 300) {
-              return false;
-            }
-            return (readText(node).match(/\\b20\\d{2}\\b/g) || []).length >= 2;
-          })
-          .sort((left, right) => {
-            const leftHits = (readText(left).match(/\\b20\\d{2}\\b/g) || []).length;
-            const rightHits = (readText(right).match(/\\b20\\d{2}\\b/g) || []).length;
-            return rightHits - leftHits;
-          });
-        return candidates[0] ?? null;
-      }
+      capture.summary = summarizeJsonValue(json);
+    } catch {
+      // Ignore capture failures and rely on the browser-fetch fallback.
+    }
+  });
+}
 
-      function collectVisibleCards(column) {
-        const cards = [...column.querySelectorAll("*")]
-          .filter((node) => node instanceof HTMLElement)
-          .filter((node) => isVisible(node))
-          .filter((node) => {
-            const rect = node.getBoundingClientRect();
-            if (rect.width < 160 || rect.height < 120) {
-              return false;
-            }
-            return /\\b20\\d{2}\\b/.test(readText(node));
-          })
-          .sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top);
+async function waitForCardCountIncrease(page, previousCount) {
+  const deadline = Date.now() + SHOW_MORE_WAIT_MS;
+  while (Date.now() <= deadline) {
+    const count = await page.evaluate(
+      () => window.__collegebaseExtractor.cardCount(),
+    );
+    if (count > previousCount) {
+      return count;
+    }
+    await sleep(400);
+  }
+  return previousCount;
+}
 
-        return cards.filter((candidate) => {
-          return !cards.some(
-            (other) => other !== candidate && other.contains(candidate),
-          );
-        });
-      }
+async function loadFullApplicationsList(page) {
+  await installCollegebasePageHelpers(page);
 
-      function findOverviewHeading() {
-        return [...document.querySelectorAll("h1, h2, h3, h4, h5, h6, div, span, p")]
-          .find((node) => normalizeWhitespace(node.textContent || "") === "OVERVIEW");
-      }
+  let loadedCount = await page.evaluate(
+    () => window.__collegebaseExtractor.cardCount(),
+  );
+  if (!loadedCount) {
+    throw new Error(
+      "Unable to find the Applications card list. Open Applications > All and rerun.",
+    );
+  }
 
-      function findDetailRoot(column) {
-        const overviewHeading = findOverviewHeading();
-        if (!overviewHeading) {
-          return null;
-        }
+  while (true) {
+    const clickPoint = await page.evaluate(
+      () => window.__collegebaseExtractor.showMoreClickPoint(),
+    );
+    if (!clickPoint) {
+      break;
+    }
 
-        const columnRect = column.getBoundingClientRect();
-        let current = overviewHeading;
-        let best = null;
-        while (current && current !== document.body) {
-          const rect = current.getBoundingClientRect();
-          if (rect.left > columnRect.right - 20 && rect.width > 400 && rect.height > 120) {
-            best = current;
-          }
-          current = current.parentElement;
-        }
-        return best ?? overviewHeading.parentElement;
-      }
+    const previousCount = loadedCount;
+    await page.mouse.click(clickPoint.x, clickPoint.y);
+    loadedCount = await waitForCardCountIncrease(page, previousCount);
+    if (loadedCount <= previousCount) {
+      break;
+    }
+    await page.waitForTimeout(500);
+  }
 
-      function detailMarker(detailRoot) {
-        return readText(detailRoot).slice(0, 500);
-      }
+  return page.evaluate(() => window.__collegebaseExtractor.cardCount());
+}
 
-      async function waitForDetailStability(previousMarker) {
-        const startedAt = Date.now();
-        let stableCount = 0;
-        let lastMarker = "";
-
-        while (Date.now() - startedAt < 8_000) {
-          const column = findApplicationsColumn();
-          const detailRoot = column ? findDetailRoot(column) : null;
-          const marker = detailRoot ? detailMarker(detailRoot) : "";
-          if (marker && marker !== previousMarker) {
-            if (marker === lastMarker) {
-              stableCount += 1;
-            } else {
-              stableCount = 1;
-              lastMarker = marker;
-            }
-            if (stableCount >= 2) {
-              return detailRoot;
-            }
-          }
-          await wait(250);
-        }
-
-        const column = findApplicationsColumn();
-        const detailRoot = column ? findDetailRoot(column) : null;
-        if (!detailRoot) {
-          throw new Error("Unable to locate the selected application detail pane.");
-        }
-        return detailRoot;
-      }
-
-      function extractYearLabelFromCard(card) {
-        const match = readText(card).match(/\\b20\\d{2}\\b/);
-        return match ? match[0] : undefined;
-      }
-
-      function cardSignature(card) {
-        return normalizeWhitespace(readText(card)).toLowerCase();
-      }
-
-      function downloadJson(payload) {
-        const json = JSON.stringify(payload, null, 2);
-        const blob = new Blob([json], { type: "application/json" });
-        const url = window.URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = DOWNLOAD_FILE_NAME;
-        anchor.style.display = "none";
-        document.body.append(anchor);
-        anchor.click();
-        anchor.remove();
-        window.setTimeout(() => window.URL.revokeObjectURL(url), 1_000);
-      }
-
-      document.title = "__COLLEGEBASE_EXPORT_RUNNING__ " + originalTitle;
-
+async function fetchJsonInBrowser(page, url) {
+  const result = await page.evaluate(
+    async ({ targetUrl, timeoutMs }) => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
       try {
-        clickApplicationsAllTab();
-        await wait(600);
-
-        const applicationsColumn = findApplicationsColumn();
-        if (!applicationsColumn) {
-          throw new Error("Unable to find the Applications card list. Open Applications > All and rerun.");
-        }
-
-        applicationsColumn.scrollTop = 0;
-        await wait(400);
-
-        const records = [];
-        const seenSignatures = new Set();
-        let stagnantPasses = 0;
-
-        while (stagnantPasses < 3) {
-          const visibleCards = collectVisibleCards(applicationsColumn);
-          let newCardsThisPass = 0;
-
-          for (const card of visibleCards) {
-            const signature = cardSignature(card);
-            if (!signature || seenSignatures.has(signature)) {
-              continue;
-            }
-
-            seenSignatures.add(signature);
-            newCardsThisPass += 1;
-            const previousMarker = detailMarker(findDetailRoot(applicationsColumn));
-            card.scrollIntoView({ block: "center" });
-            await wait(200);
-            card.click();
-            await wait(250);
-
-            const detailRoot = await waitForDetailStability(previousMarker);
-            records.push(
-              extractRawRecordFromDetailRoot(detailRoot, {
-                sourceCardIndex: records.length + 1,
-                applicationYearLabel: extractYearLabelFromCard(card),
-                capturedTitle: document.title.replace(/^__COLLEGEBASE_EXPORT_RUNNING__\\s*/, ""),
-                capturedUrl: window.location.href,
-              }),
-            );
-          }
-
-          const before = applicationsColumn.scrollTop;
-          applicationsColumn.scrollBy({ top: applicationsColumn.clientHeight * 0.85 });
-          await wait(400);
-          const after = applicationsColumn.scrollTop;
-
-          if (newCardsThisPass === 0 || Math.abs(after - before) < 4) {
-            stagnantPasses += 1;
-          } else {
-            stagnantPasses = 0;
-          }
-        }
-
-        if (records.length === 0) {
-          throw new Error("No application cards were extracted. Confirm that Applications > All contains records.");
-        }
-
-        downloadJson({
-          source: "collegebase",
-          listName: "all",
-          extractedAt: new Date().toISOString(),
-          extractionMode: "atlas_javascript_injection",
-          sourceUrl: window.location.href,
-          recordCount: records.length,
-          records,
+        const response = await fetch(targetUrl, {
+          credentials: "include",
+          signal: controller.signal,
         });
-
-        document.title = originalTitle;
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown CollegeBase extraction error";
-        document.title = "__COLLEGEBASE_EXPORT_ERROR__ " + message;
-        throw error;
+        const text = await response.text();
+        return {
+          ok: response.ok,
+          status: response.status,
+          contentType: response.headers.get("content-type") ?? "",
+          text,
+        };
+      } finally {
+        window.clearTimeout(timeoutId);
       }
-    })();
-  `;
+    },
+    { targetUrl: url, timeoutMs: NETWORK_FETCH_TIMEOUT_MS },
+  );
 
-  const base64 = Buffer.from(source, "utf8").toString("base64");
-  return `javascript:eval(atob(${JSON.stringify(base64)}))`;
+  let json = null;
+  if (result.text) {
+    try {
+      json = JSON.parse(result.text);
+    } catch {
+      json = null;
+    }
+  }
+
+  return {
+    ...result,
+    json,
+  };
+}
+
+async function fetchApplicantProfilesWithRetry(page, candidateUrl) {
+  const requestUrl = candidateUrl || COLLEGEBASE_APPLICANT_PROFILES_URL;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await fetchJsonInBrowser(page, requestUrl);
+    if (result.ok && isApplicantProfilesPayload(result.json)) {
+      return {
+        profiles: result.json,
+        requestUrl,
+      };
+    }
+
+    if (attempt === 0 && RETRYABLE_STATUS_CODES.has(result.status)) {
+      await page.reload({
+        waitUntil: "domcontentloaded",
+        timeout: NAVIGATION_TIMEOUT_MS,
+      });
+      await page.waitForTimeout(2_500);
+      continue;
+    }
+
+    throw new Error(
+      `Unable to fetch applicant profiles from ${requestUrl} (status ${result.status || "unknown"}).`,
+    );
+  }
+
+  throw new Error(`Unable to fetch applicant profiles from ${requestUrl}.`);
+}
+
+function normalizeDisplayValue(value, fallback = "None") {
+  if (value == null) {
+    return fallback;
+  }
+  const normalized = normalizeWhitespace(value);
+  return normalized || fallback;
+}
+
+function toList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => normalizeWhitespace(item))
+    .filter(Boolean);
+}
+
+function stringifyExtracurricularItem(item) {
+  if (!item || typeof item !== "object") {
+    return normalizeWhitespace(item);
+  }
+
+  const title = normalizeWhitespace(item.title);
+  const description = normalizeWhitespace(item.description);
+  if (title && description) {
+    return `${title}: ${description}`;
+  }
+  return title || description;
+}
+
+function buildKeyValueSection(entries) {
+  const value = Object.fromEntries(
+    entries.filter(([, entryValue]) => normalizeWhitespace(entryValue)),
+  );
+  return Object.keys(value).length > 0
+    ? { kind: "kv", value }
+    : null;
+}
+
+function buildListSection(values) {
+  const list = dedupeStrings(values.filter(Boolean));
+  return list.length > 0 ? { kind: "list", value: list } : null;
+}
+
+function buildTextSection(value) {
+  const text = normalizeWhitespace(value);
+  return text ? { kind: "text", value: text } : null;
+}
+
+function buildAcademicsSection(academics = {}) {
+  const safeAcademics =
+    academics && typeof academics === "object" ? academics : {};
+  const apTesting = Array.isArray(safeAcademics.ap_testing)
+    ? safeAcademics.ap_testing
+        .map((item) => normalizeWhitespace(item))
+        .filter(Boolean)
+    : [];
+
+  return buildKeyValueSection([
+    ["SAT", normalizeDisplayValue(safeAcademics.sat)],
+    ["ACT", normalizeDisplayValue(safeAcademics.act)],
+    ["Unweighted GPA", normalizeDisplayValue(safeAcademics.unweighted_gpa)],
+    ["Weighted GPA", normalizeDisplayValue(safeAcademics.weighted_gpa)],
+    ["Rank", normalizeDisplayValue(safeAcademics.rank)],
+    ["AP Courses", normalizeDisplayValue(safeAcademics.number_of_ap_courses)],
+    ["IB Courses", normalizeDisplayValue(safeAcademics.number_of_ib_courses)],
+    ["Honors Courses", normalizeDisplayValue(safeAcademics.number_of_honors_courses)],
+    ["IB", normalizeDisplayValue(safeAcademics.ib)],
+    ["AP Testing", normalizeDisplayValue(apTesting.join(", "))],
+  ]);
+}
+
+function buildEssaysSection(essays = {}) {
+  const safeEssays = essays && typeof essays === "object" ? essays : {};
+  return buildKeyValueSection([
+    [
+      "Common App Essay Topic",
+      normalizeWhitespace(safeEssays.common_app_essay?.topic_overview),
+    ],
+    [
+      "Supplemental Essay Topic",
+      normalizeWhitespace(safeEssays.supplemental_essays?.topic_overview),
+    ],
+    [
+      "Supplemental Essay School",
+      normalizeWhitespace(safeEssays.supplemental_essays?.school_name),
+    ],
+  ]);
+}
+
+function buildRatingsSection(rating = {}) {
+  const safeRating = rating && typeof rating === "object" ? rating : {};
+  return buildKeyValueSection([
+    ["Academic Score", normalizeWhitespace(safeRating.academic_score)],
+    ["Extracurricular Score", normalizeWhitespace(safeRating.extracurricular_score)],
+    ["Awards Score", normalizeWhitespace(safeRating.awards_score)],
+    ["Overall Score", normalizeWhitespace(safeRating.overall_score)],
+  ]);
+}
+
+export function mapApplicantProfileToRawRecord(profile, context = {}) {
+  const demographics = profile.demographics ?? {};
+  const academicsSection = buildAcademicsSection(profile.academics);
+  const extracurricularSection = buildListSection(
+    (profile.extracurricular_activities ?? []).map(stringifyExtracurricularItem),
+  );
+  const awardsSection = buildListSection(toList(profile.awards));
+  const acceptancesSection = buildListSection(
+    toList(profile.decisions?.acceptances),
+  );
+  const rejectionsSection = buildListSection(toList(profile.decisions?.rejections));
+  const waitlistsSection = buildListSection(toList(profile.decisions?.waitlists));
+  const hooksSection = buildTextSection(demographics.hooks);
+  const lettersSection = buildListSection(
+    (profile.letters_of_recommendation ?? []).map((item) => {
+      if (!item || typeof item !== "object") {
+        return normalizeWhitespace(item);
+      }
+      const recommender = normalizeWhitespace(item.recommender);
+      const quality = normalizeWhitespace(item.relationship_and_quality);
+      if (recommender && quality) {
+        return `${recommender}: ${quality}`;
+      }
+      return recommender || quality;
+    }),
+  );
+  const interviewsSection = buildListSection(toList(profile.interviews));
+  const essaysSection = buildEssaysSection(profile.essays);
+  const tagsSection = buildListSection(toList(profile.tags));
+  const ratingSection = buildRatingsSection(profile.rating);
+  const assignedCategorySection = buildTextSection(profile.assigned_category);
+
+  const overviewFields = Object.fromEntries(
+    [
+      ["Major", demographics.intended_major],
+      ["Race", demographics.race_ethnicity],
+      ["Gender", demographics.gender],
+      ["Residence", demographics.residence],
+      ["Income Bracket", demographics.income_bracket],
+      ["Type of School", demographics.type_of_school],
+    ]
+      .map(([key, value]) => [key, normalizeWhitespace(value)])
+      .filter(([, value]) => value),
+  );
+
+  const sectionMap = Object.fromEntries(
+    [
+      ["Academics", academicsSection],
+      ["Extracurriculars", extracurricularSection],
+      ["Awards", awardsSection],
+      ["Acceptances", acceptancesSection],
+      ["Rejections", rejectionsSection],
+      ["Waitlists", waitlistsSection],
+      ["Hooks", hooksSection],
+      ["Letters of Recommendation", lettersSection],
+      ["Interviews", interviewsSection],
+      ["Essays", essaysSection],
+      ["Tags", tagsSection],
+      ["Rating", ratingSection],
+      ["Assigned Category", assignedCategorySection],
+    ].filter(([, section]) => section),
+  );
+
+  return {
+    sourceCardIndex: context.sourceCardIndex ?? 0,
+    applicationYearLabel: normalizeWhitespace(profile.year),
+    overviewBadges: dedupeStrings(
+      Array.isArray(profile.flair)
+        ? profile.flair.map((value) => normalizeWhitespace(value))
+        : [],
+    ),
+    overviewFields,
+    sectionMap,
+    capturedTitle: context.capturedTitle ?? "",
+    capturedUrl: context.capturedUrl ?? "",
+    transportMetadata: {
+      profileId: profile.id,
+      createdAt: profile.createdat ?? null,
+      sourceDataUrl: context.sourceDataUrl ?? "",
+    },
+  };
+}
+
+export function buildRawExportFromApplicantProfiles(profiles, context = {}) {
+  return {
+    source: "collegebase",
+    listName: "all",
+    extractedAt: context.extractedAt ?? new Date().toISOString(),
+    extractionMode: "atlas_profile_network_replay",
+    sourceUrl: context.sourceUrl ?? COLLEGEBASE_APP_URL,
+    recordCount: profiles.length,
+    records: profiles.map((profile, index) =>
+      mapApplicantProfileToRawRecord(profile, {
+        sourceCardIndex: index + 1,
+        capturedTitle: context.capturedTitle ?? "",
+        capturedUrl: context.capturedUrl ?? context.sourceUrl ?? COLLEGEBASE_APP_URL,
+        sourceDataUrl: context.sourceDataUrl ?? "",
+      }),
+    ),
+  };
+}
+
+function buildDebugArtifact(partial = {}) {
+  return {
+    extractionMode: "atlas_profile_network_replay",
+    requestUrlPatterns: [],
+    loadedCardCount: 0,
+    discoveredApplicantProfilesUrl: null,
+    fetchedProfileCount: 0,
+    identifierCount: 0,
+    firstFailingApplicationIdentifier: null,
+    errorMessage: null,
+    ...partial,
+  };
+}
+
+function writeDebugArtifact(debugArtifact) {
+  ensureOutputDirectory();
+  writeFileSync(DEBUG_OUTPUT_PATH, JSON.stringify(debugArtifact, null, 2));
 }
 
 export async function extractCollegebaseApplications() {
@@ -896,28 +1156,105 @@ export async function extractCollegebaseApplications() {
   }
 
   focusAtlasTab(tab.window_id, tab.tab_index);
-  const activeTab = getActiveTabState();
-  if (!activeTab.url.startsWith(COLLEGEBASE_APP_URL)) {
-    throw new Error("Atlas did not focus the CollegeBase tab correctly.");
+
+  const debugArtifact = buildDebugArtifact();
+  const { tempRoot, profileDirectory } = cloneAtlasProfileToTemp();
+  let context;
+
+  try {
+    const launched = await launchAtlasBackedBrowser(profileDirectory, tempRoot);
+    context = launched.context;
+    const page = launched.page;
+    const captureState = createCaptureState();
+    attachNetworkCapture(page, captureState);
+
+    await openApplicationsTool(page);
+    const loadedCardCount = await loadFullApplicationsList(page);
+    debugArtifact.loadedCardCount = loadedCardCount;
+
+    if (loadedCardCount < MIN_EXPECTED_CARD_COUNT) {
+      throw new Error(
+        `CollegeBase loaded only ${loadedCardCount} cards, below the expected minimum of ${MIN_EXPECTED_CARD_COUNT}.`,
+      );
+    }
+
+    await page.waitForTimeout(1_000);
+    debugArtifact.requestUrlPatterns = captureState.requestUrlPatterns;
+
+    const capture = findApplicantProfilesCapture(captureState.captures);
+    if (capture?.url) {
+      debugArtifact.discoveredApplicantProfilesUrl = sanitizeUrlForDebug(capture.url);
+    }
+
+    let profiles = captureState.applicantProfilesPayload;
+    let sourceDataUrl = captureState.applicantProfilesUrl ?? COLLEGEBASE_APPLICANT_PROFILES_URL;
+
+    if (!isApplicantProfilesPayload(profiles)) {
+      const fetched = await fetchApplicantProfilesWithRetry(
+        page,
+        capture?.url ?? captureState.applicantProfilesUrl ?? COLLEGEBASE_APPLICANT_PROFILES_URL,
+      );
+      profiles = fetched.profiles;
+      sourceDataUrl = fetched.requestUrl;
+      debugArtifact.discoveredApplicantProfilesUrl = sanitizeUrlForDebug(
+        fetched.requestUrl,
+      );
+    }
+
+    if (!isApplicantProfilesPayload(profiles)) {
+      throw new Error("Unable to resolve the applicant profiles payload.");
+    }
+
+    const identifierList = profiles.map((profile) => profile.id);
+    const uniqueIdentifierCount = new Set(identifierList).size;
+    debugArtifact.fetchedProfileCount = profiles.length;
+    debugArtifact.identifierCount = uniqueIdentifierCount;
+
+    if (uniqueIdentifierCount !== profiles.length) {
+      const duplicateId = identifierList.find(
+        (identifier, index) => identifierList.indexOf(identifier) !== index,
+      );
+      debugArtifact.firstFailingApplicationIdentifier = duplicateId ?? null;
+      throw new Error(
+        `Duplicate applicant profile identifiers were found in applicantProfiles.json.`,
+      );
+    }
+
+    if (profiles.length !== loadedCardCount) {
+      throw new Error(
+        `Loaded ${loadedCardCount} cards, but fetched ${profiles.length} applicant profiles.`,
+      );
+    }
+
+    const rawExport = buildRawExportFromApplicantProfiles(profiles, {
+      sourceUrl: page.url(),
+      capturedTitle: await page.title(),
+      capturedUrl: page.url(),
+      sourceDataUrl,
+    });
+    const normalizedExport = normalizeRawExport(rawExport);
+
+    writeFileSync(RAW_OUTPUT_PATH, JSON.stringify(rawExport, null, 2));
+    writeFileSync(NORMALIZED_OUTPUT_PATH, JSON.stringify(normalizedExport, null, 2));
+    rmSync(DEBUG_OUTPUT_PATH, { force: true });
+
+    return {
+      rawPath: RAW_OUTPUT_PATH,
+      normalizedPath: NORMALIZED_OUTPUT_PATH,
+      recordCount: rawExport.recordCount ?? rawExport.records?.length ?? 0,
+      loadedCardCount,
+    };
+  } catch (error) {
+    debugArtifact.errorMessage =
+      error instanceof Error ? error.message : String(error);
+    writeDebugArtifact(debugArtifact);
+    throw error;
+  } finally {
+    if (context) {
+      await context.close();
+    }
+    rmSync(tempRoot, { recursive: true, force: true });
   }
-
-  const downloadFileName = buildDownloadFileName();
-  const startedAtMs = Date.now();
-  const payload = buildBrowserExtractionSource(downloadFileName);
-  clickJavaScriptIntoAtlas(payload);
-
-  const downloadedPath = await waitForDownloadOrError(startedAtMs);
-  moveFile(downloadedPath, RAW_OUTPUT_PATH);
-
-  const rawExport = JSON.parse(readFileSync(RAW_OUTPUT_PATH, "utf8"));
-  const normalizedExport = normalizeRawExport(rawExport);
-  writeFileSync(NORMALIZED_OUTPUT_PATH, JSON.stringify(normalizedExport, null, 2));
-
-  return {
-    rawPath: RAW_OUTPUT_PATH,
-    normalizedPath: NORMALIZED_OUTPUT_PATH,
-    recordCount: rawExport.recordCount ?? rawExport.records?.length ?? 0,
-  };
 }
 
 async function main() {
@@ -928,6 +1265,7 @@ async function main() {
         rawPath: result.rawPath,
         normalizedPath: result.normalizedPath,
         recordCount: result.recordCount,
+        loadedCardCount: result.loadedCardCount,
       },
       null,
       2,

@@ -4,7 +4,12 @@ values
   ('22222222-2222-2222-2222-222222222222', 'daniel.brooks@begifted.example', 'Daniel Brooks'),
   ('33333333-3333-3333-3333-333333333333', 'narin.chai@begifted.example', 'Narin Chai'),
   ('44444444-4444-4444-4444-444444444444', 'mali.sae-lim@begifted.example', 'Mali Sae-Lim'),
-  ('55555555-5555-5555-5555-555555555555', 'kevin.hsieh@begifted.example', 'Kevin Hsieh')
+  ('55555555-5555-5555-5555-555555555555', 'kevin.hsieh@begifted.example', 'Kevin Hsieh'),
+  ('66666666-6666-6666-6666-666666666661', 'lydia.chen@example.com', 'Lydia Chen'),
+  ('66666666-6666-6666-6666-666666666662', 'suda.rattanachai@example.com', 'Suda Rattanachai'),
+  ('66666666-6666-6666-6666-666666666663', 'rhea.singh@example.com', 'Rhea Singh'),
+  ('66666666-6666-6666-6666-666666666664', 'eunji.park@example.com', 'Eunji Park'),
+  ('66666666-6666-6666-6666-666666666665', 'pim.wattan@example.com', 'Pim Wattan')
 on conflict (id) do nothing;
 
 insert into profile_roles (profile_id, role)
@@ -14,7 +19,12 @@ values
   ('33333333-3333-3333-3333-333333333333', 'ops'),
   ('44444444-4444-4444-4444-444444444444', 'ops'),
   ('55555555-5555-5555-5555-555555555555', 'strategist'),
-  ('55555555-5555-5555-5555-555555555555', 'ops')
+  ('55555555-5555-5555-5555-555555555555', 'ops'),
+  ('66666666-6666-6666-6666-666666666661', 'parent'),
+  ('66666666-6666-6666-6666-666666666662', 'parent'),
+  ('66666666-6666-6666-6666-666666666663', 'parent'),
+  ('66666666-6666-6666-6666-666666666664', 'parent'),
+  ('66666666-6666-6666-6666-666666666665', 'parent')
 on conflict (profile_id, role) do nothing;
 
 insert into families (
@@ -30,13 +40,13 @@ values
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'maya-wattan', 'Maya Wattan', 'Pim Wattan', 'us_college', 'Core Pathway', '11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444', 'Launch and roadmap', 'green', 'Onboarding outputs landed on time and the first 90-day plan is locked with clear owners.', '2026-01-15', '2026-03-05')
 on conflict (id) do nothing;
 
-insert into family_contacts (id, family_id, full_name, email, relationship, is_primary)
+insert into family_contacts (id, family_id, full_name, email, relationship, is_primary, user_id)
 values
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'Lydia Chen', 'lydia.chen@example.com', 'Mother', true),
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'Suda Rattanachai', 'suda.rattanachai@example.com', 'Mother', true),
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'Rhea Singh', 'rhea.singh@example.com', 'Mother', true),
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4', 'Eunji Park', 'eunji.park@example.com', 'Mother', true),
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'Pim Wattan', 'pim.wattan@example.com', 'Father', true)
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'Lydia Chen', 'lydia.chen@example.com', 'Mother', true, '66666666-6666-6666-6666-666666666661'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'Suda Rattanachai', 'suda.rattanachai@example.com', 'Mother', true, '66666666-6666-6666-6666-666666666662'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'Rhea Singh', 'rhea.singh@example.com', 'Mother', true, '66666666-6666-6666-6666-666666666663'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4', 'Eunji Park', 'eunji.park@example.com', 'Mother', true, '66666666-6666-6666-6666-666666666664'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'Pim Wattan', 'pim.wattan@example.com', 'Father', true, '66666666-6666-6666-6666-666666666665')
 on conflict (id) do nothing;
 
 insert into monthly_summaries (
@@ -137,7 +147,7 @@ select
     when 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3' then '15151515-1515-1515-1515-151515151531'
     when 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4' then '15151515-1515-1515-1515-151515151541'
     else '15151515-1515-1515-1515-151515151551'
-  end,
+  end::uuid,
   f.id,
   lower(regexp_replace(f.student_name, '[^a-zA-Z0-9]+', '-', 'g')),
   f.student_name,

@@ -28,4 +28,3 @@
 - Essay workflow
 - Recommender workflow
 - Billing and payments
-- Advanced analytics and forecasting
