@@ -163,6 +163,12 @@ export type CollegeProgramMatch = {
   title: string;
 };
 
+export type CollegeDemographicMixItem = {
+  label: string;
+  share?: number;
+  colorToken: string;
+};
+
 export type CollegeSearchFilters = {
   familySlug?: string;
   query?: string;
@@ -185,6 +191,7 @@ export type CollegeSearchFilters = {
   sort?: CollegeSortOption;
   page?: number;
   perPage?: number;
+  selectedScorecardSchoolId?: number;
 };
 
 export type CollegeSearchResult = {
@@ -200,9 +207,14 @@ export type CollegeSearchResult = {
   retentionRate?: number;
   averageNetPrice?: number;
   medianEarnings?: number;
+  tuitionStickerPrice?: number;
   latitude?: number;
   longitude?: number;
   matchedPrograms: CollegeProgramMatch[];
+  demographicMix?: CollegeDemographicMixItem[];
+  heroImage?: string;
+  heroImageAlt?: string;
+  heroAccent?: string;
 };
 
 export type FamilyCollegeStrategyProfile = {

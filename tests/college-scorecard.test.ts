@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   buildCollegeScorecardUrl,
   clampPerPage,
+  enrichCollegeSearchResult,
+  getFeaturedCollegeSearchResult,
   makeCollegeListItemInput,
   mapCollegeOwnership,
   mapCollegeSearchResult,
@@ -40,9 +42,14 @@ function makeSchool(overrides: Partial<CollegeSearchResult> = {}): CollegeSearch
     retentionRate: 0.94,
     averageNetPrice: 28000,
     medianEarnings: 88000,
+    tuitionStickerPrice: 61200,
     latitude: 42.37,
     longitude: -71.11,
     matchedPrograms: [{ code: "1107", title: "Computer Science" }],
+    demographicMix: [
+      { label: "White", share: 0.32, colorToken: "#403C39" },
+      { label: "Asian", share: 0.24, colorToken: "#4196DF" },
+    ],
     ...overrides,
   };
 }
@@ -53,7 +60,7 @@ afterEach(() => {
 });
 
 describe("college scorecard integration", () => {
-  it("always includes the bachelor's predominant-degree filter and normalized query params", () => {
+  it("always includes the bachelor's predominant-degree filter and enriched field selections", () => {
     process.env.COLLEGE_SCORECARD_API_KEY = "test-api-key";
 
     const url = new URL(
@@ -101,6 +108,10 @@ describe("college scorecard integration", () => {
     expect(url.searchParams.get("per_page")).toBe("20");
     expect(url.searchParams.get("sort")).toBe("latest.earnings.10_yrs_after_entry.median:desc");
     expect(url.searchParams.get("fields")).toContain("latest.programs");
+    expect(url.searchParams.get("fields")).toContain("latest.cost.tuition.in_state");
+    expect(url.searchParams.get("fields")).toContain(
+      "latest.student.demographics.race_ethnicity.hispanic",
+    );
   });
 
   it("maps ownership codes into explicit labels", () => {
@@ -110,7 +121,7 @@ describe("college scorecard integration", () => {
     expect(mapCollegeOwnership(99)).toBe("Unknown");
   });
 
-  it("keeps only matching bachelor's nested programs", () => {
+  it("maps tuition and demographic mix from official scorecard fields", () => {
     const school = mapCollegeSearchResult(
       {
         id: 110662,
@@ -121,13 +132,31 @@ describe("college scorecard integration", () => {
           ownership: 1,
         },
         latest: {
-          student: { size: 45000 },
+          student: {
+            size: 45000,
+            demographics: {
+              race_ethnicity: {
+                white: 0.21,
+                asian: 0.34,
+                black: 0.05,
+                hispanic: 0.18,
+                aian: 0.01,
+                nhpi: 0.01,
+                two_or_more: 0.08,
+                non_resident_alien: 0.08,
+                unknown: 0.04,
+              },
+            },
+          },
           admissions: {
             admission_rate: { overall: 0.12 },
             sat_scores: { average: { overall: 1415 } },
           },
           completion: { rate_suppressed: { overall: 0.94 } },
-          cost: { avg_net_price: { overall: 18600 } },
+          cost: {
+            avg_net_price: { overall: 18600 },
+            tuition: { in_state: 15200, out_of_state: 48200 },
+          },
           earnings: { "10_yrs_after_entry": { median: 88000 } },
           programs: {
             cip_4_digit: [
@@ -142,6 +171,22 @@ describe("college scorecard integration", () => {
     );
 
     expect(school.matchedPrograms).toEqual([{ code: "1107", title: "Computer Science" }]);
+    expect(school.tuitionStickerPrice).toBe(48200);
+    expect(school.demographicMix).toEqual([
+      { label: "White", share: 0.21, colorToken: "#403C39" },
+      { label: "Asian", share: 0.34, colorToken: "#4196DF" },
+      { label: "Black", share: 0.05, colorToken: "#8C58B2" },
+      { label: "Hispanic", share: 0.18, colorToken: "#E68A1E" },
+      { label: "Other", share: 0.22, colorToken: "#1D9D63" },
+    ]);
+  });
+
+  it("merges curated featured-card enrichment onto known schools", () => {
+    const enriched = enrichCollegeSearchResult(makeSchool({ scorecardSchoolId: 166027 }));
+
+    expect(enriched.heroImage).toBe("/college-hero-ivy.svg");
+    expect(enriched.heroAccent).toBe("#72503f");
+    expect(enriched.heroImageAlt).toContain("courtyard");
   });
 
   it("clamps per-page requests to supported bounds", () => {
@@ -149,6 +194,17 @@ describe("college scorecard integration", () => {
     expect(clampPerPage(0)).toBe(12);
     expect(clampPerPage(5)).toBe(5);
     expect(clampPerPage(100)).toBe(20);
+  });
+
+  it("defaults the featured result to the first school when selection is missing or invalid", () => {
+    const schools = [
+      makeSchool({ scorecardSchoolId: 166027, schoolName: "First University" }),
+      makeSchool({ scorecardSchoolId: 166683, schoolName: "Second University" }),
+    ];
+
+    expect(getFeaturedCollegeSearchResult(schools, undefined)?.scorecardSchoolId).toBe(166027);
+    expect(getFeaturedCollegeSearchResult(schools, 999999)?.scorecardSchoolId).toBe(166027);
+    expect(getFeaturedCollegeSearchResult(schools, 166683)?.schoolName).toBe("Second University");
   });
 
   it("suggests a likely bucket when projected testing clears the school profile", () => {

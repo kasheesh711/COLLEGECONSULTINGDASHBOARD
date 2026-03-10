@@ -240,4 +240,5 @@ export const collegeSearchFiltersSchema = z.object({
     .optional(),
   page: z.coerce.number().int().min(0).optional(),
   perPage: z.coerce.number().int().min(1).max(20).optional(),
+  selected: z.coerce.number().int().positive().optional(),
 });

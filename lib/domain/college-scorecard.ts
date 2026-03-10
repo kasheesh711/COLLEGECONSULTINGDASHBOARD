@@ -1,5 +1,7 @@
+import { getCollegeSearchEnrichment } from "@/lib/domain/college-enrichment";
 import type {
   BucketSuggestion,
+  CollegeDemographicMixItem,
   CollegeOwnership,
   CollegeSearchFilters,
   CollegeSearchResult,
@@ -28,7 +30,18 @@ const defaultFields = [
   "latest.completion.rate_suppressed.overall",
   "latest.student.retention_rate.four_year.full_time",
   "latest.cost.avg_net_price.overall",
+  "latest.cost.tuition.in_state",
+  "latest.cost.tuition.out_of_state",
   "latest.earnings.10_yrs_after_entry.median",
+  "latest.student.demographics.race_ethnicity.white",
+  "latest.student.demographics.race_ethnicity.asian",
+  "latest.student.demographics.race_ethnicity.black",
+  "latest.student.demographics.race_ethnicity.hispanic",
+  "latest.student.demographics.race_ethnicity.aian",
+  "latest.student.demographics.race_ethnicity.nhpi",
+  "latest.student.demographics.race_ethnicity.two_or_more",
+  "latest.student.demographics.race_ethnicity.non_resident_alien",
+  "latest.student.demographics.race_ethnicity.unknown",
 ];
 
 const sortFieldMap: Record<CollegeSortOption, string> = {
@@ -59,6 +72,18 @@ type ScorecardProgramEntry = {
   };
 };
 
+type ScorecardRaceEthnicity = {
+  white?: number;
+  asian?: number;
+  black?: number;
+  hispanic?: number;
+  aian?: number;
+  nhpi?: number;
+  two_or_more?: number;
+  non_resident_alien?: number;
+  unknown?: number;
+};
+
 type ScorecardSchoolResult = {
   id: number;
   school?: {
@@ -79,6 +104,9 @@ type ScorecardSchoolResult = {
           full_time?: number;
         };
       };
+      demographics?: {
+        race_ethnicity?: ScorecardRaceEthnicity;
+      };
     };
     admissions?: {
       admission_rate?: {
@@ -98,6 +126,10 @@ type ScorecardSchoolResult = {
     cost?: {
       avg_net_price?: {
         overall?: number;
+      };
+      tuition?: {
+        in_state?: number;
+        out_of_state?: number;
       };
     };
     earnings?: {
@@ -121,7 +153,18 @@ type ScorecardSchoolResult = {
   "latest.completion.rate_suppressed.overall"?: number;
   "latest.student.retention_rate.four_year.full_time"?: number;
   "latest.cost.avg_net_price.overall"?: number;
+  "latest.cost.tuition.in_state"?: number;
+  "latest.cost.tuition.out_of_state"?: number;
   "latest.earnings.10_yrs_after_entry.median"?: number;
+  "latest.student.demographics.race_ethnicity.white"?: number;
+  "latest.student.demographics.race_ethnicity.asian"?: number;
+  "latest.student.demographics.race_ethnicity.black"?: number;
+  "latest.student.demographics.race_ethnicity.hispanic"?: number;
+  "latest.student.demographics.race_ethnicity.aian"?: number;
+  "latest.student.demographics.race_ethnicity.nhpi"?: number;
+  "latest.student.demographics.race_ethnicity.two_or_more"?: number;
+  "latest.student.demographics.race_ethnicity.non_resident_alien"?: number;
+  "latest.student.demographics.race_ethnicity.unknown"?: number;
 };
 
 export function isCollegeScorecardConfigured() {
@@ -161,18 +204,87 @@ function getMatchedPrograms(record: ScorecardSchoolResult, programCode?: string)
     }));
 }
 
+function mapDemographicMix(record: ScorecardSchoolResult): CollegeDemographicMixItem[] | undefined {
+  const raceEthnicity = {
+    white:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.white") ??
+      record.latest?.student?.demographics?.race_ethnicity?.white,
+    asian:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.asian") ??
+      record.latest?.student?.demographics?.race_ethnicity?.asian,
+    black:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.black") ??
+      record.latest?.student?.demographics?.race_ethnicity?.black,
+    hispanic:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.hispanic") ??
+      record.latest?.student?.demographics?.race_ethnicity?.hispanic,
+    aian:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.aian") ??
+      record.latest?.student?.demographics?.race_ethnicity?.aian,
+    nhpi:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.nhpi") ??
+      record.latest?.student?.demographics?.race_ethnicity?.nhpi,
+    twoOrMore:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.two_or_more") ??
+      record.latest?.student?.demographics?.race_ethnicity?.two_or_more,
+    nonResidentAlien:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.non_resident_alien") ??
+      record.latest?.student?.demographics?.race_ethnicity?.non_resident_alien,
+    unknown:
+      getFieldValue<number>(record, "latest.student.demographics.race_ethnicity.unknown") ??
+      record.latest?.student?.demographics?.race_ethnicity?.unknown,
+  };
+
+  const otherShare = (
+    [
+      raceEthnicity.aian,
+      raceEthnicity.nhpi,
+      raceEthnicity.twoOrMore,
+      raceEthnicity.nonResidentAlien,
+      raceEthnicity.unknown,
+    ] as Array<number | undefined>
+  ).reduce<number>((sum, value) => sum + (value ?? 0), 0);
+
+  const demographicMix: CollegeDemographicMixItem[] = [
+    { label: "White", share: raceEthnicity.white, colorToken: "#403C39" },
+    { label: "Asian", share: raceEthnicity.asian, colorToken: "#4196DF" },
+    { label: "Black", share: raceEthnicity.black, colorToken: "#8C58B2" },
+    { label: "Hispanic", share: raceEthnicity.hispanic, colorToken: "#E68A1E" },
+    { label: "Other", share: otherShare > 0 ? otherShare : undefined, colorToken: "#1D9D63" },
+  ].filter((item) => item.share != null && item.share > 0);
+
+  return demographicMix.length > 0 ? demographicMix : undefined;
+}
+
+function getTuitionStickerPrice(record: ScorecardSchoolResult, ownership: CollegeOwnership) {
+  const inState =
+    getFieldValue<number>(record, "latest.cost.tuition.in_state") ??
+    record.latest?.cost?.tuition?.in_state;
+  const outOfState =
+    getFieldValue<number>(record, "latest.cost.tuition.out_of_state") ??
+    record.latest?.cost?.tuition?.out_of_state;
+
+  if (ownership === "Public") {
+    return outOfState ?? inState;
+  }
+
+  return inState ?? outOfState;
+}
+
 export function mapCollegeSearchResult(
   record: ScorecardSchoolResult,
   programCode?: string,
 ): CollegeSearchResult {
+  const ownership = mapCollegeOwnership(
+    getFieldValue<number>(record, "school.ownership") ?? record.school?.ownership,
+  );
+
   return {
     scorecardSchoolId: record.id,
     schoolName: getFieldValue<string>(record, "school.name") ?? record.school?.name ?? "Unknown school",
     city: getFieldValue<string>(record, "school.city") ?? record.school?.city ?? "Unknown city",
     state: getFieldValue<string>(record, "school.state") ?? record.school?.state ?? "Unknown state",
-    ownership: mapCollegeOwnership(
-      getFieldValue<number>(record, "school.ownership") ?? record.school?.ownership,
-    ),
+    ownership,
     studentSize: getFieldValue<number>(record, "latest.student.size") ?? record.latest?.student?.size,
     admissionRate:
       getFieldValue<number>(record, "latest.admissions.admission_rate.overall") ??
@@ -192,9 +304,18 @@ export function mapCollegeSearchResult(
     medianEarnings:
       getFieldValue<number>(record, "latest.earnings.10_yrs_after_entry.median") ??
       record.latest?.earnings?.["10_yrs_after_entry"]?.median,
+    tuitionStickerPrice: getTuitionStickerPrice(record, ownership),
     latitude: getFieldValue<number>(record, "location.lat") ?? record.location?.lat,
     longitude: getFieldValue<number>(record, "location.lon") ?? record.location?.lon,
     matchedPrograms: getMatchedPrograms(record, programCode),
+    demographicMix: mapDemographicMix(record),
+  };
+}
+
+export function enrichCollegeSearchResult(school: CollegeSearchResult): CollegeSearchResult {
+  return {
+    ...school,
+    ...getCollegeSearchEnrichment(school.scorecardSchoolId),
   };
 }
 
@@ -325,7 +446,9 @@ export async function searchCollegeScorecard(filters: CollegeSearchFilters) {
     total: payload.metadata.total,
     page: payload.metadata.page,
     perPage: payload.metadata.per_page,
-    results: payload.results.map((record) => mapCollegeSearchResult(record, filters.programCode)),
+    results: payload.results.map((record) =>
+      enrichCollegeSearchResult(mapCollegeSearchResult(record, filters.programCode)),
+    ),
   };
 }
 
@@ -448,6 +571,19 @@ export function getCurrentFamilyCollegeList(family: FamilyWorkspace) {
     family.collegeLists.find((list) => list.isCurrent) ??
     [...family.collegeLists].sort((left, right) => left.listName.localeCompare(right.listName))[0] ??
     null
+  );
+}
+
+export function getFeaturedCollegeSearchResult(
+  results: CollegeSearchResult[],
+  selectedScorecardSchoolId?: number,
+) {
+  if (results.length === 0) return null;
+  if (!selectedScorecardSchoolId) return results[0];
+
+  return (
+    results.find((school) => school.scorecardSchoolId === selectedScorecardSchoolId) ??
+    results[0]
   );
 }
 

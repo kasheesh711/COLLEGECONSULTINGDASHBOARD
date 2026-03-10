@@ -148,7 +148,7 @@ Layout:
 
 - warm editorial header
 - sticky research filter rail
-- College Scorecard result feed
+- selected-school featured preview above a compact result roster
 - optional family context strip when opened with `?family=<slug>`
 
 Behavior:
@@ -157,7 +157,8 @@ Behavior:
 - uses live College Scorecard data on the server
 - major/program search uses a controlled CIP-4 picker
 - URL query params are the source of truth for search state
-- when a current family list exists, results can be added directly to that list
+- `selected=<scorecardSchoolId>` swaps the featured preview without leaving the page
+- when a current family list exists, the selected preview can be added directly to that list
 
 ## `/students/new`
 

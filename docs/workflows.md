@@ -51,13 +51,15 @@ Acceptance:
 1. Strategist or ops opens `/colleges` for broad research or launches from `/families/[id]` for family-aware list building.
 2. Explorer queries College Scorecard live and always scopes to bachelor’s-dominant institutions.
 3. Major-aware filtering uses the controlled CIP-4 picker.
-4. When a family context and current named list exist, the user can add schools directly into the workbench.
-5. Bucket suggestions are system-generated, but counselor overrides remain authoritative.
+4. Users preview one selected school at a time through URL-driven state while the lighter roster remains scan-first.
+5. When a family context and current named list exist, the user can add the selected school directly into the workbench.
+6. Bucket suggestions are system-generated, but counselor overrides remain authoritative.
 
 Acceptance:
 
 - College research remains internal-only.
 - Family workbench stores named lists and a current list.
+- The selected preview is shareable and deterministic because it stays in the URL state.
 - Demo mode can browse live Scorecard data if the API key exists, but saved-list writes require Supabase.
 
 ## Publish parent view

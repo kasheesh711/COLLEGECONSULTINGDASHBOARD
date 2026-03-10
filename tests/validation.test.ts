@@ -130,6 +130,7 @@ describe("schema validation", () => {
       retentionMin: "90",
       perPage: "20",
       sort: "size_desc",
+      selected: "166683",
     });
 
     expect(result.success).toBe(true);
@@ -137,6 +138,7 @@ describe("schema validation", () => {
     expect(result.data?.admissionRateMax).toBe(0.25);
     expect(result.data?.completionMin).toBe(0.8);
     expect(result.data?.retentionMin).toBe(0.9);
+    expect(result.data?.selected).toBe(166683);
   });
 
   it("rejects unsupported college search sort values", () => {
