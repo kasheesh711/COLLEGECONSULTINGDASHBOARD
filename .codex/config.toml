@@ -1,0 +1,10 @@
+project_name = "BeGifted Dashboard MVP"
+primary_docs = ["docs/PRD.md", "docs/data-model.md", "docs/screens.md", "docs/workflows.md"]
+test_command = "npm run test"
+lint_command = "npm run lint"
+build_command = "npm run build"
+
+[defaults]
+app_mode = "demo_first"
+backend = "supabase"
+launch_pathway = "us_college"
