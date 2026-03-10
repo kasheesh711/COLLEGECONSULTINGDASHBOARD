@@ -517,7 +517,12 @@ function clickJavaScriptIntoAtlas(payload) {
 
   const script = [
     'tell application "ChatGPT Atlas" to activate',
-    "delay 0.25",
+    'tell application "System Events"',
+    'tell process "ChatGPT Atlas"',
+    "set frontmost to true",
+    "end tell",
+    "end tell",
+    "delay 0.5",
     'tell application "System Events"',
     'keystroke "l" using command down',
     "delay 0.15",
