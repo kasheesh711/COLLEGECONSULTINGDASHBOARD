@@ -78,6 +78,12 @@ export type CollegebaseAnalyticsSnapshot = {
   };
 };
 
+export type CollegebaseAnalyticsSearchParams = Record<string, string | string[] | undefined>;
+
+function getFirstSearchParamValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function roundAverage(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -168,16 +174,35 @@ function buildRosterItem(applicant: CollegebaseApplicantRecord): CollegebaseAppl
   };
 }
 
-function sortRoster(items: CollegebaseApplicantRosterItem[]) {
+function getRosterMetricValue(item: CollegebaseApplicantRosterItem, metric: CollegebaseMetric) {
+  return metric === "sat" ? item.satComposite ?? -1 : item.actComposite ?? -1;
+}
+
+function sortRoster(items: CollegebaseApplicantRosterItem[], metric: CollegebaseMetric) {
   return [...items].sort((left, right) => {
-    const leftScore = left.satComposite ?? left.actComposite ?? -1;
-    const rightScore = right.satComposite ?? right.actComposite ?? -1;
+    const leftScore = getRosterMetricValue(left, metric);
+    const rightScore = getRosterMetricValue(right, metric);
 
     if (rightScore !== leftScore) return rightScore - leftScore;
+    const leftFallbackScore = metric === "sat" ? left.actComposite ?? -1 : left.satComposite ?? -1;
+    const rightFallbackScore = metric === "sat" ? right.actComposite ?? -1 : right.satComposite ?? -1;
+
+    if (rightFallbackScore !== leftFallbackScore) {
+      return rightFallbackScore - leftFallbackScore;
+    }
     if ((right.unweightedGpa ?? -1) !== (left.unweightedGpa ?? -1)) {
       return (right.unweightedGpa ?? -1) - (left.unweightedGpa ?? -1);
     }
 
+    return left.label.localeCompare(right.label);
+  });
+}
+
+function sortScatterPoints(points: CollegebaseScatterPoint[]) {
+  return [...points].sort((left, right) => {
+    if (right.y !== left.y) return right.y - left.y;
+    if (right.x !== left.x) return right.x - left.x;
+    if (left.outcome !== right.outcome) return left.outcome.localeCompare(right.outcome);
     return left.label.localeCompare(right.label);
   });
 }
@@ -316,8 +341,14 @@ export function buildCollegebaseAnalyticsSnapshot(
       }).length
     : 0;
 
-  const rosterAccepted = sortRoster(acceptedApplicants.map((applicant) => buildRosterItem(applicant)));
-  const rosterRejected = sortRoster(rejectedApplicants.map((applicant) => buildRosterItem(applicant)));
+  const rosterAccepted = sortRoster(
+    acceptedApplicants.map((applicant) => buildRosterItem(applicant)),
+    filters.metric,
+  );
+  const rosterRejected = sortRoster(
+    rejectedApplicants.map((applicant) => buildRosterItem(applicant)),
+    filters.metric,
+  );
 
   return {
     filters,
@@ -342,8 +373,76 @@ export function buildCollegebaseAnalyticsSnapshot(
     },
     scatter: {
       metric: filters.metric,
-      points: scatterPoints,
+      points: sortScatterPoints(scatterPoints),
       excludedCount: scatterExcludedCount,
     },
   };
+}
+
+export function buildCollegebaseAnalyticsHref(
+  searchParams: CollegebaseAnalyticsSearchParams,
+  updates: Record<string, string | undefined> = {},
+) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (updates[key] !== undefined || value == null) continue;
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => params.append(key, item));
+      continue;
+    }
+
+    params.set(key, value);
+  }
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+
+  return `/analytics${params.toString() ? `?${params.toString()}` : ""}`;
+}
+
+export function buildCollegebaseApplicantDetailHref(
+  sourceId: string,
+  searchParams: CollegebaseAnalyticsSearchParams,
+  options: {
+    school?: string;
+    rosterOutcome?: CollegebaseOutcome;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  const returnTo = buildCollegebaseAnalyticsHref(searchParams);
+
+  if (options.school) {
+    params.set("school", options.school);
+  }
+  if (options.rosterOutcome) {
+    params.set("rosterOutcome", options.rosterOutcome);
+  }
+  if (returnTo !== "/analytics") {
+    params.set("returnTo", returnTo);
+  }
+
+  return `/analytics/applicants/${sourceId}${params.toString() ? `?${params.toString()}` : ""}`;
+}
+
+export function resolveCollegebaseAnalyticsReturnHref(
+  candidate: string | string[] | undefined,
+) {
+  const value = getFirstSearchParamValue(candidate);
+  if (!value) return "/analytics";
+
+  try {
+    const parsed = new URL(value, "http://localhost");
+    if (parsed.origin !== "http://localhost" || parsed.pathname !== "/analytics") {
+      return "/analytics";
+    }
+
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return "/analytics";
+  }
 }
