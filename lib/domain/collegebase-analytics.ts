@@ -99,10 +99,17 @@ export type CollegebaseAnalyticsDataset = {
   availableSchools: string[];
 };
 
-const DEFAULT_DATASET_PATH = path.join(
+export const COLLEGEBASE_ANALYTICS_DATASET_PATH = path.join(
   process.cwd(),
   "tmp/collegebase/collegebase-applications.normalized.json",
 );
+
+export const COLLEGEBASE_ANALYTICS_ASSUMPTIONS = [
+  "Analytics is internal-only and read-only. The local Collegebase export is a reference dataset, not the operational system of record.",
+  "Accepted and rejected comparisons are applicant-level outcomes from the normalized file. Waitlists stay separate and are excluded from outcome summaries.",
+  "The drill-down page intentionally uses extracted profile labels and source ids because the source dataset does not contain live BeGifted student records.",
+  "Legacy score repairs are applied during normalization: 2400-scale SAT values are converted, ACT values misplaced in the SAT field are recovered, and 100-point GPAs are normalized when they fit the documented range.",
+] as const;
 
 const listSectionSchema = z.object({
   kind: z.literal("list"),
@@ -370,11 +377,11 @@ function normalizeMajors(record: RawApplicantRecord, canonicalMap: Map<string, s
 }
 
 function buildSchoolOutcomes(record: RawApplicantRecord): CollegebaseSchoolOutcome[] {
-  const accepted = record.acceptanceSchoolNames.map((schoolName) => ({
+  const accepted = dedupeStrings(record.acceptanceSchoolNames).map((schoolName) => ({
     schoolName: normalizeWhitespace(schoolName),
     outcome: "accepted" as const,
   }));
-  const rejected = getListSection(record.otherSections, "Rejections").map((schoolName) => ({
+  const rejected = dedupeStrings(getListSection(record.otherSections, "Rejections")).map((schoolName) => ({
     schoolName: normalizeWhitespace(schoolName),
     outcome: "rejected" as const,
   }));
@@ -435,7 +442,7 @@ export function parseCollegebaseAnalyticsDataset(input: unknown): CollegebaseAna
 }
 
 export async function loadCollegebaseAnalyticsDatasetFromFile(
-  filePath = DEFAULT_DATASET_PATH,
+  filePath = COLLEGEBASE_ANALYTICS_DATASET_PATH,
 ) {
   try {
     const raw = await readFile(filePath, "utf8");

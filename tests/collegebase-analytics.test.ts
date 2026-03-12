@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  COLLEGEBASE_ANALYTICS_ASSUMPTIONS,
   loadCollegebaseAnalyticsDatasetFromFile,
   parseCollegebaseAnalyticsDataset,
   type CollegebaseAnalyticsFilters,
 } from "@/lib/domain/collegebase-analytics";
-import { buildCollegebaseAnalyticsSnapshot } from "@/lib/reporting/collegebase-analytics";
+import {
+  buildCollegebaseAnalyticsHref,
+  buildCollegebaseAnalyticsSnapshot,
+  buildCollegebaseApplicantDetailHref,
+  resolveCollegebaseAnalyticsReturnHref,
+} from "@/lib/reporting/collegebase-analytics";
 
 function makeDataset() {
   return parseCollegebaseAnalyticsDataset({
@@ -123,6 +129,46 @@ describe("collegebase analytics domain", () => {
     expect(first.waitlistSchoolNames).toEqual(["Columbia University"]);
   });
 
+  it("dedupes repeated school outcomes so school filters stay stable", () => {
+    const dataset = parseCollegebaseAnalyticsDataset({
+      records: [
+        {
+          sourceId: "repeat111",
+          listName: "all",
+          sourceCardIndex: 1,
+          applicationYearLabel: "2024",
+          overview: {
+            badges: [],
+            intendedMajors: ["Economics"],
+          },
+          academics: {
+            satComposite: 1490,
+            rawItems: {},
+          },
+          extracurricularItems: [],
+          awardItems: [],
+          acceptanceSchoolNames: ["Yale University", " yale university ", "Yale University"],
+          otherSections: {
+            Rejections: {
+              kind: "list",
+              value: ["Brown University", "brown university"],
+            },
+            Waitlists: {
+              kind: "list",
+              value: ["Columbia University", "columbia university"],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(dataset.records[0].schoolOutcomes).toEqual([
+      { schoolName: "Yale University", outcome: "accepted" },
+      { schoolName: "Brown University", outcome: "rejected" },
+    ]);
+    expect(dataset.records[0].waitlistSchoolNames).toEqual(["Columbia University"]);
+  });
+
   it("builds accepted versus rejected summaries and scatter exclusions for a selected school", () => {
     const snapshot = buildCollegebaseAnalyticsSnapshot(
       makeDataset(),
@@ -165,6 +211,60 @@ describe("collegebase analytics domain", () => {
       }),
     );
     expect(snapshot.availableMajors.map((item) => item.label)).toContain("Computer Science");
+  });
+
+  it("sorts school-specific rosters deterministically using the selected metric", () => {
+    const dataset = parseCollegebaseAnalyticsDataset({
+      records: [
+        {
+          sourceId: "act-high",
+          listName: "all",
+          sourceCardIndex: 1,
+          applicationYearLabel: "2024",
+          overview: { badges: [], intendedMajors: ["Economics"] },
+          academics: { satComposite: 1450, actComposite: 35, unweightedGpa: 3.8, rawItems: {} },
+          extracurricularItems: [],
+          awardItems: [],
+          acceptanceSchoolNames: ["Yale University"],
+          otherSections: {},
+        },
+        {
+          sourceId: "sat-high",
+          listName: "all",
+          sourceCardIndex: 2,
+          applicationYearLabel: "2024",
+          overview: { badges: [], intendedMajors: ["Economics"] },
+          academics: { satComposite: 1540, actComposite: 33, unweightedGpa: 3.9, rawItems: {} },
+          extracurricularItems: [],
+          awardItems: [],
+          acceptanceSchoolNames: ["Yale University"],
+          otherSections: {},
+        },
+        {
+          sourceId: "act-mid",
+          listName: "all",
+          sourceCardIndex: 3,
+          applicationYearLabel: "2024",
+          overview: { badges: [], intendedMajors: ["Economics"] },
+          academics: { satComposite: 1500, actComposite: 34, unweightedGpa: 3.95, rawItems: {} },
+          extracurricularItems: [],
+          awardItems: [],
+          acceptanceSchoolNames: ["Yale University"],
+          otherSections: {},
+        },
+      ],
+    });
+
+    const snapshot = buildCollegebaseAnalyticsSnapshot(
+      dataset,
+      makeFilters({ school: "Yale University", metric: "act" }),
+    );
+
+    expect(snapshot.roster.accepted.map((item) => item.sourceId)).toEqual([
+      "act-high",
+      "act-mid",
+      "sat-high",
+    ]);
   });
 
   it("repairs legacy score scales instead of rejecting the dataset", () => {
@@ -234,5 +334,40 @@ describe("collegebase analytics domain", () => {
     await expect(
       loadCollegebaseAnalyticsDatasetFromFile("/tmp/does-not-exist-collegebase.json"),
     ).rejects.toThrow("Collegebase analytics dataset not found");
+  });
+
+  it("keeps drill-down links and return navigation pinned to the filtered analytics view", () => {
+    expect(
+      buildCollegebaseApplicantDetailHref(
+        "alpha1111",
+        {
+          school: "Yale University",
+          metric: "act",
+          satMin: "1450",
+        },
+        {
+          school: "Yale University",
+          rosterOutcome: "accepted",
+        },
+      ),
+    ).toBe(
+      "/analytics/applicants/alpha1111?school=Yale+University&rosterOutcome=accepted&returnTo=%2Fanalytics%3Fschool%3DYale%2BUniversity%26metric%3Dact%26satMin%3D1450",
+    );
+
+    expect(
+      resolveCollegebaseAnalyticsReturnHref(
+        "/analytics?school=Yale+University&metric=act&satMin=1450",
+      ),
+    ).toBe("/analytics?school=Yale+University&metric=act&satMin=1450");
+    expect(resolveCollegebaseAnalyticsReturnHref("https://example.com/phish")).toBe("/analytics");
+  });
+
+  it("documents the dataset assumptions in code for the analytics surface", () => {
+    expect(COLLEGEBASE_ANALYTICS_ASSUMPTIONS).toHaveLength(4);
+    expect(COLLEGEBASE_ANALYTICS_ASSUMPTIONS.join(" ")).toContain("read-only");
+    expect(COLLEGEBASE_ANALYTICS_ASSUMPTIONS.join(" ")).toContain("Waitlists");
+    expect(buildCollegebaseAnalyticsHref({ school: "Yale University", metric: "sat" })).toBe(
+      "/analytics?school=Yale+University&metric=sat",
+    );
   });
 });

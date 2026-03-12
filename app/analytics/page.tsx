@@ -5,10 +5,16 @@ import { MetricCard } from "@/components/shared/metric-card";
 import { SectionCard } from "@/components/shared/section-card";
 import { requireInternalAccess } from "@/lib/auth/session";
 import {
+  COLLEGEBASE_ANALYTICS_ASSUMPTIONS,
+  COLLEGEBASE_ANALYTICS_DATASET_PATH,
   loadCollegebaseAnalyticsDataset,
   type CollegebaseAnalyticsFilters,
 } from "@/lib/domain/collegebase-analytics";
-import { buildCollegebaseAnalyticsSnapshot } from "@/lib/reporting/collegebase-analytics";
+import {
+  buildCollegebaseAnalyticsHref,
+  buildCollegebaseAnalyticsSnapshot,
+  buildCollegebaseApplicantDetailHref,
+} from "@/lib/reporting/collegebase-analytics";
 import { analyticsFiltersSchema } from "@/lib/validation/schema";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -42,32 +48,6 @@ function buildFilters(searchParams: Record<string, string | string[] | undefined
         metric: "sat",
         outcome: "all",
       };
-}
-
-function buildAnalyticsHref(
-  searchParams: Record<string, string | string[] | undefined>,
-  updates: Record<string, string | undefined>,
-) {
-  const params = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (updates[key] !== undefined || value == null) continue;
-
-    if (Array.isArray(value)) {
-      value.forEach((item) => params.append(key, item));
-      continue;
-    }
-
-    params.set(key, value);
-  }
-
-  for (const [key, value] of Object.entries(updates)) {
-    if (value) {
-      params.set(key, value);
-    }
-  }
-
-  return `/analytics${params.toString() ? `?${params.toString()}` : ""}`;
 }
 
 function formatAverage(value?: number, sampleSize?: number) {
@@ -104,7 +84,8 @@ export default async function AnalyticsPage({
         </p>
         <h1 className="section-title mt-3 text-3xl font-semibold">Collegebase analytics is unavailable</h1>
         <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-          This route reads a local normalized dataset from `tmp/collegebase`. Fix the file or regenerate it, then reload.
+          This route reads a local normalized dataset from `tmp/collegebase`. Regenerate it with
+          `npm run extract:collegebase`, then verify the refresh checklist in `docs/analytics-collegebase.md`.
         </p>
         <p className="mt-4 rounded-[1.25rem] bg-[var(--warn-soft)] px-4 py-3 text-sm text-[var(--warn)]">
           {loadError}
@@ -135,6 +116,7 @@ export default async function AnalyticsPage({
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 px-4 py-4 text-sm text-[var(--muted)]">
+            <p>Mode: Internal-only reference, read-only</p>
             <p>Applicant records: {dataset.records.length}</p>
             <p>Unique schools: {dataset.availableSchools.length}</p>
             <p>Selected view: {summaryLabel}</p>
@@ -163,6 +145,33 @@ export default async function AnalyticsPage({
           value={String(snapshot.coverage.gpaCount)}
           helper="Applicants with unweighted GPA"
         />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+            Dataset assumptions
+          </p>
+          <ul className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
+            {COLLEGEBASE_ANALYTICS_ASSUMPTIONS.map((assumption) => (
+              <li key={assumption} className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
+                {assumption}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5 text-sm leading-7 text-[var(--muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em]">Refresh and verification</p>
+          <p className="mt-4">
+            Source file: <code>{COLLEGEBASE_ANALYTICS_DATASET_PATH}</code>
+          </p>
+          <p className="mt-3">
+            Refresh command: <code>npm run extract:collegebase</code>
+          </p>
+          <p className="mt-3">
+            Verification runbook: <code>docs/analytics-collegebase.md</code>
+          </p>
+        </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
@@ -379,7 +388,7 @@ export default async function AnalyticsPage({
                     </p>
                   </div>
                   <Link
-                    href={buildAnalyticsHref(resolved, { school: school.schoolName })}
+                    href={buildCollegebaseAnalyticsHref(resolved, { school: school.schoolName })}
                     className="inline-flex rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold"
                   >
                     View school
@@ -408,7 +417,7 @@ export default async function AnalyticsPage({
       >
         <div className="mb-4 flex flex-wrap gap-3">
           <Link
-            href={buildAnalyticsHref(resolved, { metric: "sat" })}
+            href={buildCollegebaseAnalyticsHref(resolved, { metric: "sat" })}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${
               filters.metric === "sat"
                 ? "bg-[var(--accent)] text-white"
@@ -418,7 +427,7 @@ export default async function AnalyticsPage({
             SAT
           </Link>
           <Link
-            href={buildAnalyticsHref(resolved, { metric: "act" })}
+            href={buildCollegebaseAnalyticsHref(resolved, { metric: "act" })}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${
               filters.metric === "act"
                 ? "bg-[var(--accent)] text-white"
@@ -474,7 +483,10 @@ export default async function AnalyticsPage({
                           {item.awardCount} awards
                         </p>
                         <Link
-                          href={`/analytics/applicants/${item.sourceId}`}
+                          href={buildCollegebaseApplicantDetailHref(item.sourceId, resolved, {
+                            school: snapshot.selectedSchool,
+                            rosterOutcome: outcome,
+                          })}
                           className="mt-4 inline-flex rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold"
                         >
                           Open extracted profile
@@ -499,4 +511,3 @@ export default async function AnalyticsPage({
     </div>
   );
 }
-
