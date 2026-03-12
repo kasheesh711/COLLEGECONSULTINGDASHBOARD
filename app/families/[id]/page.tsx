@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Files, MessageSquare, Plus, School, Users } from "lucide-react";
+import { CircleAlert, Files, MessageSquare, Plus, School, Users } from "lucide-react";
+import { FamilyCockpitOverview } from "@/components/shared/family-cockpit-overview";
 import { FlashBanner } from "@/components/shared/flash-banner";
+import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
 import { SectionCard } from "@/components/shared/section-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
@@ -31,12 +33,15 @@ import {
 } from "@/lib/domain/college-scorecard";
 import { cip4Options } from "@/lib/domain/cip4";
 import {
+  computeTaskStatus,
   formatDisplayDate,
   getFamilyLatestNotes,
   getFamilyPendingItems,
   getLatestSummary,
+  getSummaryHistory,
   getStudentCountsLabel,
 } from "@/lib/domain/dashboard";
+import type { FamilyWorkspace, TaskItem } from "@/lib/domain/types";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -64,6 +69,27 @@ function HiddenProgramInputs({
   );
 }
 
+type OpenTask = {
+  label: string;
+  task: TaskItem;
+  studentSlug?: string;
+};
+
+function getFamilyOpenTasks(family: FamilyWorkspace): OpenTask[] {
+  const familyTasks = family.tasks.map((task) => ({ label: "Family", task }));
+  const studentTasks = family.students.flatMap((student) =>
+    student.tasks.map((task) => ({
+      label: student.studentName,
+      task,
+      studentSlug: student.slug,
+    })),
+  );
+
+  return [...familyTasks, ...studentTasks]
+    .filter(({ task }) => computeTaskStatus(task) !== "done")
+    .sort((left, right) => left.task.dueDate.localeCompare(right.task.dueDate));
+}
+
 export default async function FamilyDetailPage({
   params,
   searchParams,
@@ -82,6 +108,17 @@ export default async function FamilyDetailPage({
   const error = getStringValue(resolved.error);
   const pendingItems = getFamilyPendingItems(family);
   const latestNotes = getFamilyLatestNotes(family);
+  const openTasks = getFamilyOpenTasks(family);
+  const overdueTasks = openTasks.filter(({ task }) => computeTaskStatus(task) === "overdue");
+  const archiveSummaries = family.students.flatMap((student) =>
+    getSummaryHistory(student).map((summary) => ({
+      id: `${student.id}-${summary.id}`,
+      studentName: student.studentName,
+      reportingMonth: summary.reportingMonth,
+      biggestWin: summary.biggestWin,
+      biggestRisk: summary.biggestRisk,
+    })),
+  );
   const primaryUsCollegeStudent = getPrimaryUsCollegeStudent(family);
   const currentCollegeList = getCurrentFamilyCollegeList(family);
   const groupedCollegeListItems = currentCollegeList
@@ -100,55 +137,183 @@ export default async function FamilyDetailPage({
 
   return (
     <div className="space-y-8">
-      <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-4xl space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              Family workspace
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="section-title text-4xl font-semibold">{family.familyLabel}</h1>
-              <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                {getStudentCountsLabel(family)}
-              </span>
-            </div>
-            <p className="text-sm text-[var(--muted)]">
-              Parent lead: {family.parentContactName} • {family.strategistOwnerName} / {family.opsOwnerName}
-            </p>
-            <p className="text-sm text-[var(--muted)]">Current mode: {formatRoleLabel(actor.activeRole)}</p>
-            <p className="max-w-3xl text-base leading-8 text-[var(--muted)]">
-              This workspace keeps family-wide coordination visible while routing strategy work into individual student portfolios.
-            </p>
-          </div>
-          <div className="space-y-3 rounded-[1.75rem] bg-white/70 p-5 text-sm text-[var(--muted)]">
-            <p>Created: {formatDisplayDate(family.createdDate)}</p>
-            <p>Updated: {formatDisplayDate(family.lastUpdatedDate)}</p>
-            <p>Contacts: {family.contacts.length}</p>
-            <Link
-              href={`/students/new?family=${family.slug}`}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white"
-            >
-              <Plus className="h-4 w-4" />
-              Add student
-            </Link>
-          </div>
-        </div>
-      </section>
+      <InternalSurfaceHero
+        eyebrow="Family workspace"
+        title={family.familyLabel}
+        description={
+          <>
+            Parent lead: {family.parentContactName}. Ownership: {family.strategistOwnerName} /{" "}
+            {family.opsOwnerName}. Current mode: {formatRoleLabel(actor.activeRole)}. This cockpit
+            keeps family-wide coordination readable before any composer opens.
+          </>
+        }
+        actions={
+          <Link
+            href={`/students/new?family=${family.slug}`}
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white"
+          >
+            <Plus className="h-4 w-4" />
+            Add student
+          </Link>
+        }
+      >
+        <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+          {getStudentCountsLabel(family)}
+        </span>
+        <span className="rounded-full bg-[var(--danger-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--danger)]">
+          {overdueTasks.length} overdue items
+        </span>
+        <span className="rounded-full bg-[var(--warn-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--warn)]">
+          {pendingItems.length} pending family-input items
+        </span>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+          Updated {formatDisplayDate(family.lastUpdatedDate)}
+        </span>
+      </InternalSurfaceHero>
 
       <FlashBanner message={message} error={error} />
 
-      <SectionCard
-        eyebrow="Students"
-        title="Student roster"
-        description="Each student keeps their own posture, tasks, testing, and school list inside the portfolio workspace."
-        icon={Users}
-      >
+      <div id="overview">
+        <FamilyCockpitOverview family={family} />
+      </div>
+
+      <div id="attention-now">
+        <SectionCard
+          eyebrow="Attention now"
+          title="Pending family input and overdue work"
+          description="This module keeps the immediate family coordination blockers above the deeper case sections."
+          icon={CircleAlert}
+          tone="urgent"
+        >
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                Pending family input
+              </p>
+              {pendingItems.length === 0 ? (
+                <div className="rounded-[1.5rem] bg-white/80 p-4 text-sm text-[var(--muted)]">
+                  No family-input items are currently pending.
+                </div>
+              ) : (
+                pendingItems.map((item) => (
+                  <div key={item.id} className="rounded-[1.5rem] bg-white/85 p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="font-semibold">{item.decisionType}</p>
+                      <StatusBadge status="yellow" />
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.summary}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                      {formatDisplayDate(item.date)} • {item.owner}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                Overdue and next due
+              </p>
+              {openTasks.length === 0 ? (
+                <div className="rounded-[1.5rem] bg-white/80 p-4 text-sm text-[var(--muted)]">
+                  No open family or student tasks are currently logged.
+                </div>
+              ) : (
+                openTasks.slice(0, 5).map(({ label, task, studentSlug }) => (
+                  <div key={`${label}-${task.id}`} className="rounded-[1.5rem] bg-white/85 p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="font-semibold">{task.itemName}</p>
+                      <StatusBadge status={computeTaskStatus(task)} kind="task" />
+                    </div>
+                    <p className="mt-2 text-sm text-[var(--muted)]">
+                      {label} • {task.owner} • {formatDisplayDate(task.dueDate)}
+                    </p>
+                    {studentSlug ? (
+                      <Link href={`/students/${studentSlug}`} className="mt-3 inline-block text-sm font-semibold text-[var(--accent)]">
+                        Open student 360
+                      </Link>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <details className="mt-5 rounded-[1.5rem] bg-white/75 p-4">
+            <summary className="cursor-pointer font-semibold">Open family-level decision composer</summary>
+            <form action={saveDecisionAction} className="mt-4 space-y-4">
+              <input type="hidden" name="familyId" value={family.id} />
+              <input type="hidden" name="familySlug" value={family.slug} />
+              <input type="hidden" name="returnPath" value={`/families/${family.slug}`} />
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  type="date"
+                  name="date"
+                  defaultValue={family.lastUpdatedDate}
+                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                />
+                <input
+                  name="decisionType"
+                  placeholder="Decision type"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                />
+              </div>
+              <textarea
+                name="summary"
+                rows={3}
+                placeholder="Decision summary"
+                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  name="owner"
+                  placeholder="Owner"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                />
+                <select
+                  name="status"
+                  defaultValue="pending"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                <input type="checkbox" name="pendingFamilyInput" defaultChecked />
+                Pending family input
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                <input type="checkbox" name="parentVisible" defaultChecked />
+                Parent visible
+              </label>
+              <button
+                type="submit"
+                disabled={!isSupabaseConfigured()}
+                className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save family decision
+              </button>
+            </form>
+          </details>
+        </SectionCard>
+      </div>
+
+      <div id="student-roster">
+        <SectionCard
+          eyebrow="Students"
+          title="Student roster"
+          description="Each student keeps their own posture, tasks, testing, and school list inside the portfolio workspace."
+          icon={Users}
+        >
         <div className="grid gap-4 xl:grid-cols-2">
           {family.students.map((student) => {
             const latestSummary = getLatestSummary(student);
 
             return (
-              <article key={student.id} className="rounded-[1.75rem] border border-[var(--border)] bg-white/70 p-5">
+              <article
+                key={student.id}
+                className="rounded-[1.75rem] border border-[var(--border)] bg-white/75 p-5 shadow-sm"
+              >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
@@ -159,7 +324,7 @@ export default async function FamilyDetailPage({
                       {student.gradeLevel} • {student.currentPhase} • {student.tier}
                     </p>
                     <p className="text-sm text-[var(--muted)]">
-                      {student.pathway.replace("_", " ")} •{" "}
+                      {student.pathway.split("_").join(" ")} •{" "}
                       {student.testingProfile?.currentSat
                         ? `SAT ${student.testingProfile.currentSat}`
                         : student.testingProfile?.currentAct
@@ -170,10 +335,11 @@ export default async function FamilyDetailPage({
                       {latestSummary?.biggestRisk ?? student.statusReason}
                     </p>
                   </div>
-                  <div className="space-y-2 text-sm text-[var(--muted)] lg:text-right">
+                  <div className="min-w-[220px] space-y-3 rounded-[1.5rem] bg-[var(--background-soft)] p-4 text-sm text-[var(--muted)] lg:text-right">
                     <p>Tasks: {student.tasks.length}</p>
                     <p>Decisions: {student.decisionLogItems.length}</p>
                     <p>Schools: {student.schoolTargets.length}</p>
+                    <p>Updated: {formatDisplayDate(student.lastUpdatedDate)}</p>
                     <Link
                       href={`/students/${student.slug}`}
                       className="inline-flex rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white"
@@ -186,14 +352,17 @@ export default async function FamilyDetailPage({
             );
           })}
         </div>
-      </SectionCard>
+        </SectionCard>
+      </div>
 
-      <SectionCard
-        eyebrow="College strategy"
-        title="College research and school list workbench"
-        description="Internal-only US college planning stays attached to the family workspace while the deeper search surface lives in the standalone explorer."
-        icon={School}
-      >
+      <div id="college-strategy">
+        <SectionCard
+          eyebrow="College strategy"
+          title="College research and school list workbench"
+          description="Internal-only US college planning stays attached to the family workspace while the deeper search surface lives in the standalone explorer."
+          icon={School}
+          tone="muted"
+        >
         {!primaryUsCollegeStudent ? (
           <div className="rounded-[1.5rem] bg-white/70 p-5 text-sm leading-7 text-[var(--muted)]">
             College Scorecard workbench is only enabled for US college applicants in v1.
@@ -701,99 +870,17 @@ export default async function FamilyDetailPage({
             </div>
           </div>
         )}
-      </SectionCard>
+        </SectionCard>
+      </div>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-        <SectionCard
-          eyebrow="Attention now"
-          title="Pending family input"
-          description="Family-wide and student-level decisions that still need household confirmation."
-          icon={MessageSquare}
-        >
-          <div className="space-y-3">
-            {pendingItems.length === 0 ? (
-              <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm text-[var(--muted)]">
-                No family-input items are currently pending.
-              </div>
-            ) : (
-              pendingItems.map((item) => (
-                <div key={item.id} className="rounded-[1.5rem] bg-white/70 p-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="font-semibold">{item.decisionType}</p>
-                    <StatusBadge status="yellow" />
-                  </div>
-                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.summary}</p>
-                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                    {formatDisplayDate(item.date)} • {item.owner}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-          <details className="mt-5 rounded-[1.5rem] bg-[var(--background-soft)] p-4">
-            <summary className="cursor-pointer font-semibold">Log family-level decision</summary>
-            <form action={saveDecisionAction} className="mt-4 space-y-4">
-              <input type="hidden" name="familyId" value={family.id} />
-              <input type="hidden" name="familySlug" value={family.slug} />
-              <input type="hidden" name="returnPath" value={`/families/${family.slug}`} />
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  type="date"
-                  name="date"
-                  defaultValue={family.lastUpdatedDate}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-                />
-                <input
-                  name="decisionType"
-                  placeholder="Decision type"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-              <textarea
-                name="summary"
-                rows={3}
-                placeholder="Decision summary"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  name="owner"
-                  placeholder="Owner"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-                />
-                <select
-                  name="status"
-                  defaultValue="pending"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="resolved">Resolved</option>
-                </select>
-              </div>
-              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                <input type="checkbox" name="pendingFamilyInput" defaultChecked />
-                Pending family input
-              </label>
-              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                <input type="checkbox" name="parentVisible" defaultChecked />
-                Parent visible
-              </label>
-              <button
-                type="submit"
-                disabled={!isSupabaseConfigured()}
-                className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Save family decision
-              </button>
-            </form>
-          </details>
-        </SectionCard>
-
+        <div id="family-notes">
         <SectionCard
           eyebrow="Notes"
           title="Latest family coordination notes"
           description="Recent notes across the household, regardless of which student generated them."
           icon={MessageSquare}
+          tone="muted"
         >
           <div className="space-y-3">
             {latestNotes.map((note) => (
@@ -871,92 +958,126 @@ export default async function FamilyDetailPage({
             </form>
           </details>
         </SectionCard>
+        </div>
+
+        <div id="family-artifacts">
+          <SectionCard
+            eyebrow="Artifacts"
+            title="Family-wide resources"
+            description="Google Drive remains the source of truth; the workspace stores metadata and quick access links."
+            icon={Files}
+            tone="muted"
+          >
+            <div className="grid gap-4 md:grid-cols-1">
+              {family.artifactLinks.length === 0 ? (
+                <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm text-[var(--muted)]">
+                  No family-wide artifacts yet.
+                </div>
+              ) : (
+                family.artifactLinks.map((artifact) => (
+                  <a
+                    key={artifact.id}
+                    href={artifact.linkUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4 transition hover:bg-white"
+                  >
+                    <p className="font-semibold">{artifact.artifactName}</p>
+                    <p className="mt-2 text-sm text-[var(--muted)]">
+                      {artifact.artifactType.replace("_", " ")} • {artifact.owner}
+                    </p>
+                  </a>
+                ))
+              )}
+            </div>
+            <details className="mt-5 rounded-[1.5rem] bg-[var(--background-soft)] p-4">
+              <summary className="cursor-pointer font-semibold">Add family artifact</summary>
+              <form action={saveArtifactLinkAction} className="mt-4 space-y-4">
+                <input type="hidden" name="familyId" value={family.id} />
+                <input type="hidden" name="familySlug" value={family.slug} />
+                <input type="hidden" name="returnPath" value={`/families/${family.slug}`} />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input
+                    name="artifactName"
+                    placeholder="Artifact name"
+                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  />
+                  <select
+                    name="artifactType"
+                    defaultValue="drive_folder"
+                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  >
+                    <option value="drive_folder">Drive folder</option>
+                    <option value="doc">Doc</option>
+                    <option value="sheet">Sheet</option>
+                    <option value="slide">Slide</option>
+                    <option value="external_link">External link</option>
+                  </select>
+                </div>
+                <input
+                  name="linkUrl"
+                  placeholder="https://..."
+                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input
+                    type="date"
+                    name="uploadDate"
+                    defaultValue={family.lastUpdatedDate}
+                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  />
+                  <input
+                    name="owner"
+                    placeholder="Owner"
+                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <input type="checkbox" name="parentVisible" />
+                  Parent visible
+                </label>
+                <button
+                  type="submit"
+                  disabled={!isSupabaseConfigured()}
+                  className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Save family artifact
+                </button>
+              </form>
+            </details>
+          </SectionCard>
+        </div>
       </section>
 
-      <SectionCard
-        eyebrow="Artifacts"
-        title="Family-wide resources"
-        description="Google Drive remains the source of truth; the workspace stores metadata and quick access links."
-        icon={Files}
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          {family.artifactLinks.length === 0 ? (
-            <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm text-[var(--muted)]">
-              No family-wide artifacts yet.
-            </div>
-          ) : (
-            family.artifactLinks.map((artifact) => (
-              <a
-                key={artifact.id}
-                href={artifact.linkUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4 transition hover:bg-white"
-              >
-                <p className="font-semibold">{artifact.artifactName}</p>
-                <p className="mt-2 text-sm text-[var(--muted)]">
-                  {artifact.artifactType.replace("_", " ")} • {artifact.owner}
-                </p>
-              </a>
-            ))
-          )}
-        </div>
-        <details className="mt-5 rounded-[1.5rem] bg-[var(--background-soft)] p-4">
-          <summary className="cursor-pointer font-semibold">Add family artifact</summary>
-          <form action={saveArtifactLinkAction} className="mt-4 space-y-4">
-            <input type="hidden" name="familyId" value={family.id} />
-            <input type="hidden" name="familySlug" value={family.slug} />
-            <input type="hidden" name="returnPath" value={`/families/${family.slug}`} />
-            <div className="grid gap-4 md:grid-cols-2">
-              <input
-                name="artifactName"
-                placeholder="Artifact name"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-              />
-              <select
-                name="artifactType"
-                defaultValue="drive_folder"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-              >
-                <option value="drive_folder">Drive folder</option>
-                <option value="doc">Doc</option>
-                <option value="sheet">Sheet</option>
-                <option value="slide">Slide</option>
-                <option value="external_link">External link</option>
-              </select>
-            </div>
-            <input
-              name="linkUrl"
-              placeholder="https://..."
-              className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <input
-                type="date"
-                name="uploadDate"
-                defaultValue={family.lastUpdatedDate}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-              />
-              <input
-                name="owner"
-                placeholder="Owner"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
-              <input type="checkbox" name="parentVisible" />
-              Parent visible
-            </label>
-            <button
-              type="submit"
-              disabled={!isSupabaseConfigured()}
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Save family artifact
-            </button>
-          </form>
-        </details>
-      </SectionCard>
+      <div id="archive">
+        <SectionCard
+          eyebrow="Archive"
+          title="Previous monthly summaries"
+          description="Older monthly posture snapshots stay available at the bottom so the current cockpit remains focused."
+          icon={Files}
+          tone="archive"
+        >
+          <div className="grid gap-4 xl:grid-cols-2">
+            {archiveSummaries.length === 0 ? (
+              <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm text-[var(--muted)]">
+                No prior monthly summaries are archived yet.
+              </div>
+            ) : (
+              archiveSummaries
+                .sort((left, right) => right.reportingMonth.localeCompare(left.reportingMonth))
+                .map((summary) => (
+                  <div key={summary.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                      {summary.studentName} • {formatDisplayDate(summary.reportingMonth)}
+                    </p>
+                    <p className="mt-3 font-semibold">{summary.biggestWin}</p>
+                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{summary.biggestRisk}</p>
+                  </div>
+                ))
+            )}
+          </div>
+        </SectionCard>
+      </div>
     </div>
   );
 }

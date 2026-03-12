@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Filter, Search, Users } from "lucide-react";
-import { SectionCard } from "@/components/shared/section-card";
+import { Filter, Search } from "lucide-react";
 import { FlashBanner } from "@/components/shared/flash-banner";
-import { StatusBadge } from "@/components/shared/status-badge";
+import { FamiliesRoster } from "@/components/shared/families-roster";
+import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
 import { formatRoleLabel } from "@/lib/auth/roles";
 import { requireInternalAccess } from "@/lib/auth/session";
 import { listInternalFamilies } from "@/lib/db/queries";
@@ -37,22 +37,29 @@ export default async function FamiliesPage({
     actor.activeRole === "ops"
       ? [...new Set(families.map((family) => family.strategistOwnerName))].sort()
       : [actor.fullName];
+  const urgentHouseholds = families.filter(
+    (family) => family.activeStatuses.includes("red") || family.overdueTaskCount > 0,
+  ).length;
+  const pendingDecisionHouseholds = families.filter((family) => family.pendingDecisionCount > 0).length;
+  const nextDue = families
+    .map((family) => family.nextCriticalDueDate)
+    .filter((value): value is string => Boolean(value))
+    .sort()[0];
 
   return (
     <div className="space-y-8">
-      <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              Family list
-            </p>
-            <h1 className="section-title mt-3 text-4xl font-semibold">Household workspace roster</h1>
-            <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-              Signed in as {actor.fullName}. Current mode: {formatRoleLabel(actor.activeRole)}.
-              Families stay grouped at the household level, with student counts and active posture surfaced up front.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
+      <InternalSurfaceHero
+        eyebrow="Family list"
+        title="Household workspace roster"
+        description={
+          <>
+            Signed in as {actor.fullName}. Current mode: {formatRoleLabel(actor.activeRole)}. This
+            roster is optimized for quick household comparison, with risk, due dates, and pending
+            decisions visible before you open a case.
+          </>
+        }
+        actions={
+          <>
             <Link
               href="/families/new"
               className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
@@ -65,18 +72,31 @@ export default async function FamiliesPage({
             >
               Add student
             </Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      >
+        <span className="rounded-full bg-[var(--danger-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--danger)]">
+          {urgentHouseholds} urgent households
+        </span>
+        <span className="rounded-full bg-[var(--warn-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--warn)]">
+          {pendingDecisionHouseholds} with pending decisions
+        </span>
+        {nextDue ? (
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+            Next critical due {formatDisplayDate(nextDue)}
+          </span>
+        ) : null}
+      </InternalSurfaceHero>
 
       <FlashBanner message={message} error={error} />
 
-      <SectionCard
-        eyebrow="Filters"
-        title="Find the next household to review"
-        description="Search covers family labels, parent contacts, and student names."
-        icon={Filter}
-      >
+      <section className="sticky top-20 z-10 rounded-[2rem] border border-[var(--border)] bg-white/90 px-5 py-5 shadow-sm backdrop-blur">
+        <div className="mb-4 flex items-center gap-2">
+          <Filter className="h-4 w-4 text-[var(--muted)]" />
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+            Sticky filters
+          </p>
+        </div>
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <label className="space-y-2 text-sm">
             <span className="font-semibold text-[var(--muted)]">Search</span>
@@ -155,70 +175,9 @@ export default async function FamiliesPage({
             </button>
           </div>
         </form>
-      </SectionCard>
+      </section>
 
-      <div className="space-y-4">
-        {families.length === 0 ? (
-          <div className="panel rounded-[2rem] p-8 text-sm leading-7 text-[var(--muted)]">
-            No households match the current filter set.
-          </div>
-        ) : (
-          families.map((family) => (
-            <article key={family.slug} className="panel rounded-[2rem] p-6 transition hover:translate-y-[-1px]">
-              <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="section-title text-2xl font-semibold">{family.familyLabel}</h2>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                      <Users className="h-3.5 w-3.5" />
-                      {family.studentCount} students
-                    </span>
-                  </div>
-                  <p className="text-sm text-[var(--muted)]">
-                    Parent lead: {family.parentContactName} • Strategist: {family.strategistOwnerName} • Ops:{" "}
-                    {family.opsOwnerName}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {family.activeStatuses.map((status) => (
-                      <StatusBadge key={`${family.slug}-${status}`} status={status} />
-                    ))}
-                  </div>
-                  <div className="rounded-[1.5rem] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Students</p>
-                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{family.studentNames.join(" • ")}</p>
-                  </div>
-                  <p className="text-sm leading-7 text-[var(--muted)]">{family.biggestRisk}</p>
-                </div>
-                <div className="space-y-3 rounded-[1.75rem] bg-[var(--background-soft)] p-5 text-sm text-[var(--muted)]">
-                  <p>
-                    Next due:{" "}
-                    {family.nextCriticalDueDate
-                      ? formatDisplayDate(family.nextCriticalDueDate)
-                      : "No active due date"}
-                  </p>
-                  <p>Pending decisions: {family.pendingDecisionCount}</p>
-                  <p>Overdue tasks: {family.overdueTaskCount}</p>
-                  <p>Updated: {formatDisplayDate(family.lastUpdatedDate)}</p>
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <Link
-                      href={`/families/${family.slug}`}
-                      className="inline-flex rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white"
-                    >
-                      Open family workspace
-                    </Link>
-                    <Link
-                      href={`/students/new?family=${family.slug}`}
-                      className="inline-flex rounded-full border border-[var(--border)] bg-white px-4 py-2 font-semibold"
-                    >
-                      Add student
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))
-        )}
-      </div>
+      <FamiliesRoster families={families} />
     </div>
   );
 }
