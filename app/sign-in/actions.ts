@@ -10,12 +10,12 @@ import {
   resolveActiveRole,
   type InternalRole,
 } from "@/lib/auth/roles";
-import { requireInternalAccess } from "@/lib/auth/session";
+import { normalizeAppPath, requireInternalAccess } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function requestMagicLink(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const next = String(formData.get("next") ?? "/dashboard").trim() || "/dashboard";
+  const next = normalizeAppPath(String(formData.get("next") ?? "/dashboard"), "/dashboard");
 
   if (!email) {
     redirect("/sign-in?error=missing_email");

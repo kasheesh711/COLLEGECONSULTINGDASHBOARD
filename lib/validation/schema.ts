@@ -22,44 +22,42 @@ const optionalDecimalString = z
   .optional()
   .transform((value) => (value ? Number(value) : undefined))
   .pipe(z.number().optional());
+const satScoreSchema = optionalNumericString.refine((value) => value == null || value <= 1600, {
+  message: "SAT must be 1600 or lower.",
+});
+const actScoreSchema = optionalNumericString.refine((value) => value == null || value <= 36, {
+  message: "ACT must be 36 or lower.",
+});
+const testingBaselineSchema = z.object({
+  currentSat: satScoreSchema,
+  projectedSat: satScoreSchema,
+  currentAct: actScoreSchema,
+  projectedAct: actScoreSchema,
+  strategyNote: z.string().trim().optional(),
+});
 
 export const studentCoreSchema = z.object({
-  studentName: z.string().min(2),
-  gradeLevel: z.string().min(2),
+  studentName: z.string().trim().min(2),
+  gradeLevel: z.string().trim().min(2),
   pathway: z.enum(["us_college", "uk_college", "us_boarding", "uk_boarding"]),
-  tier: z.string().min(2),
-  currentPhase: z.string().min(2),
+  tier: z.string().trim().min(2),
+  currentPhase: z.string().trim().min(2),
   overallStatus: z.enum(["green", "yellow", "red"]),
-  statusReason: z.string().min(10),
+  statusReason: z.string().trim().min(10),
 });
 
 export const familyWithStudentSchema = z.object({
-  familyLabel: z.string().min(2),
-  parentContactName: z.string().min(2),
-  parentEmail: z.string().email(),
+  familyLabel: z.string().trim().min(2),
+  parentContactName: z.string().trim().min(2),
+  parentEmail: z.string().trim().email(),
   strategistOwnerId: postgresUuidSchema.optional().or(z.literal("")),
   opsOwnerId: postgresUuidSchema.optional().or(z.literal("")),
-  studentName: z.string().min(2),
-  gradeLevel: z.string().min(2),
-  pathway: z.enum(["us_college", "uk_college", "us_boarding", "uk_boarding"]),
-  tier: z.string().min(2),
-  currentPhase: z.string().min(2),
-  overallStatus: z.enum(["green", "yellow", "red"]),
-  statusReason: z.string().min(10),
-  currentSat: optionalNumericString,
-  projectedSat: optionalNumericString,
-  currentAct: optionalNumericString,
-  projectedAct: optionalNumericString,
-  strategyNote: z.string().trim().optional(),
+}).extend({
+  ...studentCoreSchema.shape,
+  ...testingBaselineSchema.shape,
 });
 
-export const createStudentSchema = studentCoreSchema.extend({
-  currentSat: optionalNumericString,
-  projectedSat: optionalNumericString,
-  currentAct: optionalNumericString,
-  projectedAct: optionalNumericString,
-  strategyNote: z.string().trim().optional(),
-});
+export const createStudentSchema = studentCoreSchema.extend(testingBaselineSchema.shape);
 
 export const monthlySummarySchema = z.object({
   reportingMonth: isoDateSchema,
@@ -127,13 +125,7 @@ export const profileUpdateSchema = z.object({
   parentVisible: z.boolean(),
 });
 
-export const testingProfileSchema = z.object({
-  currentSat: optionalNumericString,
-  projectedSat: optionalNumericString,
-  currentAct: optionalNumericString,
-  projectedAct: optionalNumericString,
-  strategyNote: z.string().trim().optional(),
-});
+export const testingProfileSchema = testingBaselineSchema;
 
 export const studentActivitySchema = z.object({
   activityName: z.string().min(2),
@@ -158,18 +150,10 @@ export const studentSchoolTargetSchema = z.object({
 });
 
 export const familyCollegeStrategyProfileSchema = z.object({
-  currentSat: optionalNumericString.refine((value) => value == null || value <= 1600, {
-    message: "SAT must be 1600 or lower.",
-  }),
-  projectedSat: optionalNumericString.refine((value) => value == null || value <= 1600, {
-    message: "Projected SAT must be 1600 or lower.",
-  }),
-  currentAct: optionalNumericString.refine((value) => value == null || value <= 36, {
-    message: "ACT must be 36 or lower.",
-  }),
-  projectedAct: optionalNumericString.refine((value) => value == null || value <= 36, {
-    message: "Projected ACT must be 36 or lower.",
-  }),
+  currentSat: satScoreSchema,
+  projectedSat: satScoreSchema,
+  currentAct: actScoreSchema,
+  projectedAct: actScoreSchema,
   intendedMajorCodes: z.array(z.string().regex(/^\d{4}$/)).default([]),
   intendedMajorLabels: z.array(z.string().min(2)).default([]),
   strategyNote: z.string().trim().optional(),

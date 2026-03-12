@@ -6,6 +6,7 @@ import {
   ACTIVE_ROLE_COOKIE_NAME,
   resolveActiveRole,
 } from "@/lib/auth/roles";
+import { normalizeAppPath } from "@/lib/auth/session";
 
 type CallbackProfileRecord = {
   id: string;
@@ -15,7 +16,7 @@ type CallbackProfileRecord = {
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/dashboard";
+  const next = normalizeAppPath(requestUrl.searchParams.get("next"), "/dashboard");
 
   if (!isSupabaseConfigured() || !code) {
     return NextResponse.redirect(new URL("/sign-in", requestUrl.origin));
@@ -39,8 +40,21 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  await supabase.auth.exchangeCodeForSession(code);
-  await supabase.rpc("bootstrap_profile");
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (exchangeError) {
+    return NextResponse.redirect(
+      new URL(`/sign-in?error=auth_callback_failed&next=${encodeURIComponent(next)}`, requestUrl.origin),
+    );
+  }
+
+  const { error: bootstrapError } = await supabase.rpc("bootstrap_profile");
+
+  if (bootstrapError) {
+    return NextResponse.redirect(
+      new URL(`/sign-in?error=profile_bootstrap_failed&next=${encodeURIComponent(next)}`, requestUrl.origin),
+    );
+  }
 
   const {
     data: { user },

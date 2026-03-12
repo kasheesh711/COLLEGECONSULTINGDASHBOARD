@@ -19,6 +19,16 @@ import {
 } from "@/lib/domain/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+type MutationClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+type MutationError = {
+  code?: string | null;
+  message?: string | null;
+};
+type InsertResult = {
+  id: string;
+  slug: string;
+};
+
 function slugify(value: string) {
   return value
     .trim()
@@ -32,8 +42,133 @@ function currentDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function buildSlugCandidate(baseSlug: string, prefix: "family" | "student", attempt: number) {
+  const resolvedBase = baseSlug || `${prefix}-${Date.now()}`;
+
+  if (attempt === 0) {
+    return resolvedBase;
+  }
+
+  const suffix = `-${attempt + 1}`;
+  return `${resolvedBase.slice(0, Math.max(1, 60 - suffix.length))}${suffix}`;
+}
+
+function isUniqueViolation(error: unknown) {
+  return (error as MutationError | null | undefined)?.code === "23505";
+}
+
+async function deleteRecordIfPresent(
+  supabase: MutationClient,
+  table: "families" | "students",
+  id: string | undefined,
+) {
+  if (!id) {
+    return;
+  }
+
+  await supabase.from(table).delete().eq("id", id);
+}
+
+async function insertFamilyRecord(
+  supabase: MutationClient,
+  input: CreateFamilyWithStudentInput,
+): Promise<InsertResult> {
+  const baseSlug = slugify(input.familyLabel);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const slug = buildSlugCandidate(baseSlug, "family", attempt);
+    const { data, error } = await supabase
+      .from("families")
+      .insert({
+        slug,
+        student_name: input.studentName,
+        parent_contact_name: input.parentContactName,
+        pathway: input.pathway,
+        tier: input.tier,
+        strategist_owner_id: input.strategistOwnerId || null,
+        ops_owner_id: input.opsOwnerId || null,
+        current_phase: input.currentPhase,
+        overall_status: input.overallStatus,
+        status_reason: input.statusReason,
+        created_date: currentDate(),
+        last_updated_date: currentDate(),
+      })
+      .select("id, slug")
+      .single();
+
+    if (!error && data) {
+      return data;
+    }
+
+    if (!isUniqueViolation(error)) {
+      throw error ?? new Error("Unable to create family.");
+    }
+  }
+
+  throw new Error("Unable to create family because the household slug is already in use.");
+}
+
+async function insertStudentRecord(
+  supabase: MutationClient,
+  input: Pick<
+    CreateStudentInput,
+    | "familyId"
+    | "studentName"
+    | "gradeLevel"
+    | "pathway"
+    | "tier"
+    | "currentPhase"
+    | "overallStatus"
+    | "statusReason"
+  >,
+): Promise<InsertResult> {
+  const baseSlug = slugify(input.studentName);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const slug = buildSlugCandidate(baseSlug, "student", attempt);
+    const { data, error } = await supabase
+      .from("students")
+      .insert({
+        family_id: input.familyId,
+        slug,
+        student_name: input.studentName,
+        grade_level: input.gradeLevel,
+        pathway: input.pathway,
+        tier: input.tier,
+        current_phase: input.currentPhase,
+        overall_status: input.overallStatus,
+        status_reason: input.statusReason,
+        created_date: currentDate(),
+        last_updated_date: currentDate(),
+      })
+      .select("id, slug")
+      .single();
+
+    if (!error && data) {
+      return data;
+    }
+
+    if (!isUniqueViolation(error)) {
+      throw error ?? new Error("Unable to create student.");
+    }
+  }
+
+  throw new Error("Unable to create student because the student slug is already in use.");
+}
+
+async function touchFamily(supabase: MutationClient, familyId: string) {
+  const { error } = await supabase
+    .from("families")
+    .update({ last_updated_date: currentDate() })
+    .eq("id", familyId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 async function maybeUpsertTestingProfile(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: MutationClient,
   studentId: string,
   input: {
     currentSat?: number;
@@ -80,117 +215,66 @@ async function maybeUpsertTestingProfile(
 
 export async function createFamilyWithStudent(input: CreateFamilyWithStudentInput) {
   const supabase = await createSupabaseServerClient();
-  const familySlug = slugify(input.familyLabel) || `family-${Date.now()}`;
-  const studentSlug = slugify(input.studentName) || `student-${Date.now()}`;
+  const family = await insertFamilyRecord(supabase, input);
 
-  const { data: family, error: familyError } = await supabase
-    .from("families")
-    .insert({
-      slug: familySlug,
-      student_name: input.studentName,
-      parent_contact_name: input.parentContactName,
-      pathway: input.pathway,
-      tier: input.tier,
-      strategist_owner_id: input.strategistOwnerId || null,
-      ops_owner_id: input.opsOwnerId || null,
-      current_phase: input.currentPhase,
-      overall_status: input.overallStatus,
-      status_reason: input.statusReason,
-      created_date: currentDate(),
-      last_updated_date: currentDate(),
-    })
-    .select("id, slug")
-    .single();
-
-  if (familyError || !family) {
-    throw familyError ?? new Error("Unable to create family.");
-  }
-
-  const { error: contactError } = await supabase.from("family_contacts").insert({
-    family_id: family.id,
-    full_name: input.parentContactName,
-    email: input.parentEmail,
-    relationship: "Parent",
-    is_primary: true,
-  });
-
-  if (contactError) throw contactError;
-
-  const { data: student, error: studentError } = await supabase
-    .from("students")
-    .insert({
+  try {
+    const { error: contactError } = await supabase.from("family_contacts").insert({
       family_id: family.id,
-      slug: studentSlug,
-      student_name: input.studentName,
-      grade_level: input.gradeLevel,
+      full_name: input.parentContactName,
+      email: input.parentEmail,
+      relationship: "Parent",
+      is_primary: true,
+    });
+
+    if (contactError) {
+      throw contactError;
+    }
+
+    const student = await insertStudentRecord(supabase, {
+      familyId: family.id,
+      studentName: input.studentName,
+      gradeLevel: input.gradeLevel,
       pathway: input.pathway,
       tier: input.tier,
-      current_phase: input.currentPhase,
-      overall_status: input.overallStatus,
-      status_reason: input.statusReason,
-      created_date: currentDate(),
-      last_updated_date: currentDate(),
-    })
-    .select("id, slug")
-    .single();
+      currentPhase: input.currentPhase,
+      overallStatus: input.overallStatus,
+      statusReason: input.statusReason,
+    });
 
-  if (studentError || !student) {
-    throw studentError ?? new Error("Unable to create first student.");
+    await maybeUpsertTestingProfile(supabase, student.id, {
+      currentSat: input.currentSat,
+      projectedSat: input.projectedSat,
+      currentAct: input.currentAct,
+      projectedAct: input.projectedAct,
+      strategyNote: input.strategyNote,
+    });
+
+    return { family, student };
+  } catch (error) {
+    await deleteRecordIfPresent(supabase, "families", family.id);
+    throw error;
   }
-
-  await maybeUpsertTestingProfile(supabase, student.id, {
-    currentSat: input.currentSat,
-    projectedSat: input.projectedSat,
-    currentAct: input.currentAct,
-    projectedAct: input.projectedAct,
-    strategyNote: input.strategyNote,
-  });
-
-  return { family, student };
 }
 
 export async function createStudent(input: CreateStudentInput) {
   const supabase = await createSupabaseServerClient();
-  const studentSlug = slugify(input.studentName) || `student-${Date.now()}`;
+  const student = await insertStudentRecord(supabase, input);
 
-  const { data: student, error } = await supabase
-    .from("students")
-    .insert({
-      family_id: input.familyId,
-      slug: studentSlug,
-      student_name: input.studentName,
-      grade_level: input.gradeLevel,
-      pathway: input.pathway,
-      tier: input.tier,
-      current_phase: input.currentPhase,
-      overall_status: input.overallStatus,
-      status_reason: input.statusReason,
-      created_date: currentDate(),
-      last_updated_date: currentDate(),
-    })
-    .select("id, slug")
-    .single();
+  try {
+    await maybeUpsertTestingProfile(supabase, student.id, {
+      currentSat: input.currentSat,
+      projectedSat: input.projectedSat,
+      currentAct: input.currentAct,
+      projectedAct: input.projectedAct,
+      strategyNote: input.strategyNote,
+    });
 
-  if (error || !student) {
-    throw error ?? new Error("Unable to create student.");
+    await touchFamily(supabase, input.familyId);
+    return student;
+  } catch (error) {
+    await deleteRecordIfPresent(supabase, "students", student.id);
+    throw error;
   }
-
-  await maybeUpsertTestingProfile(supabase, student.id, {
-    currentSat: input.currentSat,
-    projectedSat: input.projectedSat,
-    currentAct: input.currentAct,
-    projectedAct: input.projectedAct,
-    strategyNote: input.strategyNote,
-  });
-
-  const { error: familyTouchError } = await supabase
-    .from("families")
-    .update({ last_updated_date: currentDate() })
-    .eq("id", input.familyId);
-
-  if (familyTouchError) throw familyTouchError;
-
-  return student;
 }
 
 export async function upsertMonthlySummary(input: UpsertMonthlySummaryInput) {
