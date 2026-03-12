@@ -1,25 +1,31 @@
 # Backlog
 
-## MVP now
+## Launch now
 
 - Internal dashboard overview
 - Filterable family list
-- Single-scroll family detail page
-- Parent portal
-- Magic-link sign-in scaffold
+- Read-first family cockpit
+- Live family creation flow
+- Live add-student flow
+- Student 360 workspace
+- Internal admissions analytics
+- Supabase auth and profile linkage for strategist and ops users
 - Supabase schema and seed data
 - Demo-mode data layer for local development
+- Parent-safe visibility coverage for invited linked households
 
-## Pilot follow-ups
+## Soft-launch follow-ups
 
-- Real create/edit forms backed by Supabase writes
-- Invite flow for parent account activation
-- Parent portal history archive refinements
-- Better per-role route protection
-- Dashboard completeness indicators
+- Parent invite and activation polish for pilot households
+- Parent portal history and presentation refinements
+- Clearer live-mode onboarding and runbook support from demo to live
+- Internal page UX refinements to further separate read-first posture from editing
+- Analytics dataset refresh and verification runbook hardening
 
 ## Deferred after pilot
 
+- Broad parent rollout beyond linked pilot households
+- Deeper College Scorecard list-building refinement and counselor override tooling
 - CSV import
 - Tutor/mentor direct input flows
 - Google Drive sync
@@ -28,3 +34,4 @@
 - Essay workflow
 - Recommender workflow
 - Billing and payments
+- Cross-pathway launch behavior beyond US college

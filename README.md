@@ -17,6 +17,7 @@ Operational dashboard MVP for BeGifted’s family case-management workflow, buil
 - [`docs/screens.md`](./docs/screens.md): route-by-route UI requirements
 - [`docs/workflows.md`](./docs/workflows.md): operational workflows and acceptance rules
 - [`docs/backlog.md`](./docs/backlog.md): MVP cut line and post-pilot backlog
+- [`docs/parallel-agent-delivery/`](./docs/parallel-agent-delivery): coordinator runbook and agent briefs for parallel delivery
 - [`supabase/migrations/20260310_initial_schema.sql`](./supabase/migrations/20260310_initial_schema.sql): initial database schema
 - [`supabase/seed.sql`](./supabase/seed.sql): realistic pilot-family seed set
 
