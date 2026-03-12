@@ -2,6 +2,7 @@ import { format, isBefore, parseISO } from "date-fns";
 import { demoFamilies } from "@/lib/domain/demo-data";
 import type {
   AcademicUpdate,
+  DashboardQueueItem,
   DashboardMetrics,
   DashboardSnapshot,
   DecisionLogItem,
@@ -34,6 +35,14 @@ const statusRank: Record<StudentCase["overallStatus"], number> = {
   red: 0,
   yellow: 1,
   green: 2,
+};
+
+const taskStatusRank: Record<TaskComputedStatus, number> = {
+  overdue: 0,
+  blocked: 1,
+  not_started: 2,
+  in_progress: 3,
+  done: 4,
 };
 
 function sortByDateDesc<T extends { date?: string; reportingMonth?: string }>(items: T[]) {
@@ -132,6 +141,29 @@ export function toStudentListItem(
     projectedSat: student.testingProfile?.projectedSat,
     schoolBucketCounts: getSchoolBucketCounts(student),
   };
+}
+
+function getUpcomingWorkItems(student: StudentCase): DashboardQueueItem["upcomingWork"] {
+  return [...student.tasks]
+    .map((task) => ({
+      itemName: task.itemName,
+      dueDate: task.dueDate,
+      computedStatus: computeTaskStatus(task),
+      parentVisible: task.parentVisible,
+      owner: task.owner,
+      category: task.category,
+    }))
+    .filter((task) => task.computedStatus !== "done")
+    .sort((left, right) => {
+      const dueDateDiff = parseISO(left.dueDate).getTime() - parseISO(right.dueDate).getTime();
+      if (dueDateDiff !== 0) return dueDateDiff;
+
+      const statusDiff = taskStatusRank[left.computedStatus] - taskStatusRank[right.computedStatus];
+      if (statusDiff !== 0) return statusDiff;
+
+      return left.itemName.localeCompare(right.itemName);
+    })
+    .slice(0, 3);
 }
 
 function getFamilyOverallStatus(family: FamilyWorkspace): StudentCase["overallStatus"] {
@@ -260,6 +292,10 @@ function compareStudentPriority(
     : Number.MAX_SAFE_INTEGER;
   if (leftDate !== rightDate) return leftDate - rightDate;
 
+  const leftUpdated = parseISO(leftItem.lastUpdatedDate).getTime();
+  const rightUpdated = parseISO(rightItem.lastUpdatedDate).getTime();
+  if (leftUpdated !== rightUpdated) return leftUpdated - rightUpdated;
+
   return left.student.studentName.localeCompare(right.student.studentName);
 }
 
@@ -327,23 +363,10 @@ export function buildDashboardSnapshot(families: FamilyWorkspace[]): DashboardSn
 
   return {
     metrics: getDashboardMetrics(families),
-    urgentStudents: prioritizedStudents.slice(0, 6).map(({ family, student }) => toStudentListItem(family, student)),
-    upcomingTasks: prioritizedStudents
-      .flatMap(({ family, student }) =>
-        student.tasks.map((task) => ({
-          familySlug: family.slug,
-          studentSlug: student.slug,
-          familyLabel: family.familyLabel,
-          studentName: student.studentName,
-          itemName: task.itemName,
-          dueDate: task.dueDate,
-          computedStatus: computeTaskStatus(task),
-          parentVisible: task.parentVisible,
-        })),
-      )
-      .filter((task) => task.computedStatus !== "done")
-      .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime())
-      .slice(0, 8),
+    urgentStudents: prioritizedStudents.slice(0, 6).map(({ family, student }) => ({
+      ...toStudentListItem(family, student),
+      upcomingWork: getUpcomingWorkItems(student),
+    })),
     schoolFitInsights: prioritizedStudents.slice(0, 4).map(({ student }) => ({
       studentSlug: student.slug,
       studentName: student.studentName,

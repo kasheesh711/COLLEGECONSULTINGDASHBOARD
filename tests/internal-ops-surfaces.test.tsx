@@ -7,13 +7,15 @@ import { buildDashboardSnapshot, toFamilyListItem } from "@/lib/domain/dashboard
 import { demoFamilies } from "@/lib/domain/demo-data";
 
 describe("internal ops surfaces", () => {
-  it("renders the dashboard queue with ranked triage actions", () => {
+  it("renders the dashboard queue with upcoming work cards and no rank label", () => {
     const snapshot = buildDashboardSnapshot(demoFamilies);
 
     render(<DashboardPriorityQueue students={snapshot.urgentStudents.slice(0, 2)} />);
 
-    expect(screen.getByText("Rank 1")).toBeInTheDocument();
+    expect(screen.queryByText(/Rank 1/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText("Attention now").length).toBeGreaterThan(0);
     expect(screen.getByText(snapshot.urgentStudents[0].studentName)).toBeInTheDocument();
+    expect(screen.getByText(snapshot.urgentStudents[0].upcomingWork[0].itemName)).toBeInTheDocument();
     expect(screen.getAllByText("Open student portfolio")).toHaveLength(2);
     expect(screen.getAllByText("Open family workspace")).toHaveLength(2);
   });

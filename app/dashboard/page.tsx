@@ -1,14 +1,11 @@
 import Link from "next/link";
-import { CircleAlert, Clock3, Files, WandSparkles } from "lucide-react";
+import { CircleAlert, Files, WandSparkles } from "lucide-react";
 import { DashboardPriorityQueue } from "@/components/shared/dashboard-priority-queue";
 import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
-import { MetricCard } from "@/components/shared/metric-card";
 import { SectionCard } from "@/components/shared/section-card";
-import { StatusBadge } from "@/components/shared/status-badge";
 import { formatRoleLabel } from "@/lib/auth/roles";
 import { requireInternalAccess } from "@/lib/auth/session";
 import { getInternalDashboardSnapshot } from "@/lib/db/queries";
-import { formatDisplayDate } from "@/lib/domain/dashboard";
 
 export default async function DashboardPage() {
   const actor = await requireInternalAccess("/dashboard");
@@ -41,7 +38,7 @@ export default async function DashboardPage() {
 
   const workloadPosture =
     snapshot.metrics.urgentStudents > 0 || snapshot.metrics.overdueItems > 0
-      ? `${snapshot.metrics.urgentStudents} students need immediate review, with ${snapshot.metrics.overdueItems} overdue items still open.`
+      ? `${snapshot.metrics.urgentStudents} urgent students and ${snapshot.metrics.overdueItems} overdue items need attention right now.`
       : "No red-posture students are sitting in the queue right now.";
 
   return (
@@ -51,24 +48,21 @@ export default async function DashboardPage() {
         title="Student command center"
         description={
           <>
-            Signed in as {actor.fullName}. Assigned roles:{" "}
-            {actor.roles.map((role) => formatRoleLabel(role)).join(" / ")}. Current mode:{" "}
-            {formatRoleLabel(actor.activeRole)} with{" "}
-            {actor.familyScope === "all" ? "global internal access" : "assigned family scope"}.{" "}
-            {workloadPosture}
+            Signed in as {actor.fullName} in {formatRoleLabel(actor.activeRole)} mode with{" "}
+            {actor.familyScope === "all" ? "global internal access" : "assigned family scope"}. {workloadPosture}
           </>
         }
         actions={
           <>
             <Link
               href="/families/new"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold !text-white shadow-sm"
             >
               New family
             </Link>
             <Link
               href="/students/new"
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/70 px-5 py-3 text-sm font-semibold"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-6 py-3 text-sm font-semibold"
             >
               Add student
             </Link>
@@ -86,81 +80,34 @@ export default async function DashboardPage() {
         </span>
       </InternalSurfaceHero>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Active students"
-          value={String(snapshot.metrics.activeStudents)}
-          helper={`Across ${snapshot.metrics.activeFamilies} families`}
-          tone="muted"
-        />
-        <MetricCard
-          label="Urgent students"
-          value={String(snapshot.metrics.urgentStudents)}
-          helper="Red posture or overdue work"
-          tone="urgent"
-        />
-        <MetricCard
-          label="Overdue items"
-          value={String(snapshot.metrics.overdueItems)}
-          helper="Nearest unresolved work across all students"
-          tone="warning"
-        />
-        <MetricCard
-          label="Parent-visible due soon"
-          value={String(snapshot.metrics.parentVisibleDueSoon)}
-          helper="Visible deadlines inside the next 14 days"
-        />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <section>
         <SectionCard
           eyebrow="Priority queue"
           title="Students needing attention now"
-          description="The queue ranks individual students first so strategists can triage work without opening each family."
           icon={CircleAlert}
           tone="urgent"
+          actions={
+            <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+              <span>Sort by</span>
+              <select
+                defaultValue="urgency"
+                aria-label="Sort priority queue"
+                className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold normal-case tracking-normal text-[var(--foreground)] outline-none"
+              >
+                <option value="urgency">Urgency first</option>
+              </select>
+            </label>
+          }
         >
           <DashboardPriorityQueue students={snapshot.urgentStudents} />
         </SectionCard>
+      </section>
 
-        <div className="space-y-6">
+      <section className="grid gap-6 xl:grid-cols-2">
           <SectionCard
-            eyebrow="Deadline map"
-            title="Upcoming work"
-            description="Nearest unresolved tasks across the whole student roster."
-            icon={Clock3}
-            tone="muted"
-          >
-            <div className="space-y-3">
-              {snapshot.upcomingTasks.map((task) => (
-                <div
-                  key={`${task.familySlug}-${task.studentName}-${task.itemName}`}
-                  className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-semibold">{task.itemName}</p>
-                      <p className="text-sm text-[var(--muted)]">
-                        {task.studentName} • {task.familyLabel}
-                      </p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        {task.parentVisible ? "Parent visible" : "Internal only"}
-                      </p>
-                    </div>
-                    <div className="space-y-2 text-right">
-                      <StatusBadge status={task.computedStatus} kind="task" />
-                      <p className="text-sm text-[var(--muted)]">{formatDisplayDate(task.dueDate)}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            eyebrow="Reporting posture"
-            title="Data hygiene and triage coverage"
-            description="Keep these lower-priority checks visible without competing with the urgent queue."
+            eyebrow="Data hygiene"
+            title="Coverage checks"
+            description="Lower-priority readiness checks for internal follow-through."
             icon={Files}
             tone="muted"
           >
@@ -186,44 +133,43 @@ export default async function DashboardPage() {
                 <p className="mt-3 font-semibold">
                   {snapshot.metrics.missingCurrentMonthSummary === 0
                     ? "All active students have a current monthly summary."
-                    : `${snapshot.metrics.missingCurrentMonthSummary} students still need a current monthly summary.`}
+                  : `${snapshot.metrics.missingCurrentMonthSummary} students still need a current monthly summary.`}
                 </p>
               </div>
             </div>
           </SectionCard>
-        </div>
-      </section>
 
-      <SectionCard
-        eyebrow="School fit"
-        title="Testing-to-list guidance"
-        description="Deterministic rule suggestions based on current/projected SAT and the live school bucket mix."
-        icon={WandSparkles}
-        tone="muted"
-      >
-        <div className="grid gap-3 xl:grid-cols-2">
-          {snapshot.schoolFitInsights.map((item) => (
-            <div key={item.studentSlug} className="rounded-[1.5rem] bg-white/75 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{item.studentName}</p>
-                  <p className="text-sm text-[var(--muted)]">
-                    {item.currentSat ? `SAT ${item.currentSat}` : "No current SAT"}
-                    {item.projectedSat ? ` -> ${item.projectedSat}` : ""}
-                  </p>
+          <SectionCard
+            eyebrow="School fit"
+            title="Testing-to-list guidance"
+            description="Deterministic suggestions that stay visible without competing with the queue."
+            icon={WandSparkles}
+            tone="muted"
+          >
+            <div className="grid gap-3">
+              {snapshot.schoolFitInsights.map((item) => (
+                <div key={item.studentSlug} className="rounded-[1.5rem] bg-white/75 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{item.studentName}</p>
+                      <p className="text-sm text-[var(--muted)]">
+                        {item.currentSat ? `SAT ${item.currentSat}` : "No current SAT"}
+                        {item.projectedSat ? ` -> ${item.projectedSat}` : ""}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/students/${item.studentSlug}`}
+                      className="inline-flex rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
+                    >
+                      Review
+                    </Link>
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.recommendation}</p>
                 </div>
-                <Link
-                  href={`/students/${item.studentSlug}`}
-                  className="inline-flex rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
-                >
-                  Review
-                </Link>
-              </div>
-              <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.recommendation}</p>
+              ))}
             </div>
-          ))}
-        </div>
-      </SectionCard>
+          </SectionCard>
+      </section>
     </div>
   );
 }
