@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { ZodError } from "zod";
 import { isSupabaseConfigured } from "@/lib/auth/config";
-import { requireInternalAccess } from "@/lib/auth/session";
+import { normalizeAppPath, requireInternalAccess } from "@/lib/auth/session";
 import {
   createFamilyWithStudent,
   createStudent,
@@ -72,7 +72,10 @@ function normalizeOptional(value: string) {
 }
 
 function getReturnPath(formData: FormData, fallback: string) {
-  return normalizeOptional(getStringValue(formData.get("returnPath"))) ?? fallback;
+  return normalizeAppPath(
+    normalizeOptional(getStringValue(formData.get("returnPath"))),
+    fallback,
+  );
 }
 
 function redirectWithMessage(path: string, type: "message" | "error", value: string) {

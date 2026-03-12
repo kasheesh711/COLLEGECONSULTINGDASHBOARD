@@ -34,6 +34,28 @@ type LiveActorLookup =
   | { kind: "unlinked_profile" }
   | { kind: "actor"; actor: LiveActor };
 
+function isSafeRelativePath(value: string) {
+  return value.startsWith("/") && !value.startsWith("//");
+}
+
+export function normalizeAppPath(
+  value: string | null | undefined,
+  fallback = "/dashboard",
+) {
+  const candidate = value?.trim();
+
+  if (!candidate || !isSafeRelativePath(candidate)) {
+    return fallback;
+  }
+
+  try {
+    const normalized = new URL(candidate, "http://begifted.local");
+    return `${normalized.pathname}${normalized.search}${normalized.hash}`;
+  } catch {
+    return fallback;
+  }
+}
+
 export type InternalAccess = {
   mode: "demo" | "live";
   profileId: string;
@@ -128,14 +150,15 @@ async function getOptionalLiveActor(): Promise<LiveActor | null> {
 
 async function getRequiredLiveActor(redirectTarget: string): Promise<LiveActor> {
   const lookup = await getLiveActorLookup();
+  const next = normalizeAppPath(redirectTarget);
 
   if (lookup.kind === "no_session") {
-    redirect(`/sign-in?next=${encodeURIComponent(redirectTarget)}`);
+    redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   }
 
   if (lookup.kind === "unlinked_profile") {
     redirect(
-      `/sign-in?error=profile_not_linked&next=${encodeURIComponent(redirectTarget)}`,
+      `/sign-in?error=profile_not_linked&next=${encodeURIComponent(next)}`,
     );
   }
 
