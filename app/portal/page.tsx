@@ -12,6 +12,13 @@ function getStringValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function formatPathwayLabel(pathway: string) {
+  return pathway
+    .split("_")
+    .map((part) => part.toUpperCase())
+    .join(" ");
+}
+
 export default async function PortalPage({
   searchParams,
 }: {
@@ -27,13 +34,14 @@ export default async function PortalPage({
       <div className="space-y-8">
         <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-            Parent portal
+            Invited parent pilot
           </p>
           <h1 className="section-title mt-3 text-4xl font-semibold">
-            Parent access is not part of the internal pilot yet
+            This view is reserved for linked parent accounts
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-            Live mode disables the demo family switcher and does not expose the parent view to internal accounts.
+            The soft-launch portal is read-only and limited to invited households that have already
+            been linked by the internal team.
           </p>
         </section>
       </div>
@@ -42,9 +50,18 @@ export default async function PortalPage({
 
   if (!portal) {
     return (
-      <div className="panel rounded-[2rem] p-8 text-sm leading-7 text-[var(--muted)]">
-        Parent access has not been activated yet.
-      </div>
+      <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+          Invited parent pilot
+        </p>
+        <h1 className="section-title mt-3 text-4xl font-semibold">
+          This account is not linked to a pilot household yet
+        </h1>
+        <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
+          Once the internal team completes the household link, this page will show the parent-safe
+          monthly view for that family only.
+        </p>
+      </section>
     );
   }
 
@@ -54,18 +71,26 @@ export default async function PortalPage({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              Parent portal
+              Invited parent pilot
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="section-title text-4xl font-semibold">{portal.family.familyLabel}</h1>
               <StatusBadge status={portal.family.overallStatus} />
             </div>
             <p className="text-base leading-8 text-[var(--muted)]">
-              A calmer monthly view for {portal.family.parentContactName}, grouped by student and limited to parent-safe information only.
+              A read-only monthly digest for {portal.family.parentContactName}, grouped by student
+              and limited to parent-safe updates, decisions, tasks, and shared resources.
             </p>
           </div>
-          <div className="rounded-[1.75rem] bg-white/70 p-5 text-sm text-[var(--muted)]">
-            <p>{portal.students.length} students in this workspace</p>
+          <div className="grid gap-3 rounded-[1.75rem] bg-white/70 p-5 text-sm text-[var(--muted)] sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]">Pilot scope</p>
+              <p className="mt-2">Invited household only</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]">Portal mode</p>
+              <p className="mt-2">Read-only for {portal.students.length} student{portal.students.length === 1 ? "" : "s"}</p>
+            </div>
           </div>
         </div>
       </section>
@@ -76,23 +101,27 @@ export default async function PortalPage({
             key={student.id}
             eyebrow={student.gradeLevel}
             title={student.studentName}
-            description={`${student.pathway.replace("_", " ")} • ${student.currentPhase}`}
+            description={`${formatPathwayLabel(student.pathway)} • ${student.currentPhase}`}
             icon={LockKeyhole}
           >
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="rounded-[1.75rem] bg-white/70 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Executive summary</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                  This month at a glance
+                </p>
                 <p className="mt-3 text-sm leading-8 text-[var(--muted)]">
                   {student.currentSummary?.parentVisibleSummary ?? "No student summary is available yet."}
                 </p>
               </div>
               <div className="rounded-[1.75rem] bg-white/70 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Top next actions</p>
-                <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-7 text-[var(--muted)]">
-                  {(student.currentSummary?.topNextActions ?? []).map((action) => (
-                    <li key={action}>{action}</li>
-                  ))}
-                </ol>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                  What stays visible
+                </p>
+                <div className="mt-3 space-y-2 text-sm leading-7 text-[var(--muted)]">
+                  <p>{student.tasks.length} visible task{student.tasks.length === 1 ? "" : "s"}</p>
+                  <p>{student.decisions.length} open decision{student.decisions.length === 1 ? "" : "s"}</p>
+                  <p>{student.artifactLinks.length} shared resource{student.artifactLinks.length === 1 ? "" : "s"}</p>
+                </div>
               </div>
             </div>
 
@@ -224,12 +253,7 @@ export default async function PortalPage({
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
                         {formatDisplayDate(summary.reportingMonth)}
                       </p>
-                      <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                        <strong className="text-[var(--foreground)]">Win:</strong> {summary.biggestWin}
-                      </p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                        <strong className="text-[var(--foreground)]">Risk:</strong> {summary.biggestRisk}
-                      </p>
+                      <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{summary.parentVisibleSummary}</p>
                     </div>
                   ))}
                 </div>
@@ -285,7 +309,7 @@ export default async function PortalPage({
                   : "border border-[var(--border)] bg-white/70 text-[var(--foreground)]"
               }`}
             >
-              Demo family: {slug}
+              Preview household: {slug}
             </Link>
           ))}
         </div>

@@ -66,6 +66,14 @@ export function getSummaryHistory(student: StudentCase): MonthlySummary[] {
   return sortByDateDesc(student.monthlySummaries).slice(1);
 }
 
+function toPortalSummary(summary: MonthlySummary) {
+  return {
+    id: summary.id,
+    reportingMonth: summary.reportingMonth,
+    parentVisibleSummary: summary.parentVisibleSummary,
+  };
+}
+
 export function getLatestAcademicUpdate(student: StudentCase): AcademicUpdate | undefined {
   return sortByDateDesc(student.academicUpdates.filter((item) => item.parentVisible))[0];
 }
@@ -347,6 +355,8 @@ export function buildDashboardSnapshot(families: FamilyWorkspace[]): DashboardSn
 }
 
 function buildPortalStudentCase(student: StudentCase): PortalStudentCase {
+  const latestSummary = getLatestSummary(student);
+
   return {
     id: student.id,
     slug: student.slug,
@@ -356,8 +366,8 @@ function buildPortalStudentCase(student: StudentCase): PortalStudentCase {
     tier: student.tier,
     currentPhase: student.currentPhase,
     overallStatus: student.overallStatus,
-    currentSummary: getLatestSummary(student),
-    summaryHistory: getSummaryHistory(student),
+    currentSummary: latestSummary ? toPortalSummary(latestSummary) : undefined,
+    summaryHistory: getSummaryHistory(student).map(toPortalSummary),
     academicUpdate: getLatestAcademicUpdate(student),
     profileUpdate: getLatestProfileUpdate(student),
     tasks: student.tasks.filter((task) => task.parentVisible),

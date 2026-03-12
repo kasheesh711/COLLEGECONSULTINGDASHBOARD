@@ -430,8 +430,16 @@ export type PortalStudentCase = {
   tier: string;
   currentPhase: string;
   overallStatus: OverallStatus;
-  currentSummary?: MonthlySummary;
-  summaryHistory: MonthlySummary[];
+  currentSummary?: {
+    id: string;
+    reportingMonth: string;
+    parentVisibleSummary: string;
+  };
+  summaryHistory: Array<{
+    id: string;
+    reportingMonth: string;
+    parentVisibleSummary: string;
+  }>;
   academicUpdate?: AcademicUpdate;
   profileUpdate?: ProfileUpdate;
   tasks: TaskItem[];
