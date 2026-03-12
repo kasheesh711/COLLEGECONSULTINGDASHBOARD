@@ -12,6 +12,10 @@ function getStringValue(value: string | string[] | undefined) {
 const errorMap: Record<string, string> = {
   missing_email: "Enter an email address to receive the magic link.",
   demo_mode: "Supabase is not configured yet, so sign-in is disabled and the workspace is running in demo mode.",
+  auth_callback_failed:
+    "The magic link could not be completed. Request a fresh link and try again.",
+  profile_bootstrap_failed:
+    "Your sign-in completed, but the linked profile could not be prepared. Verify the matching profile record and try again.",
   profile_not_linked:
     "Your email is not linked to a dashboard profile yet. Add a matching profile row before signing in again.",
 };

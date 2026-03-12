@@ -383,19 +383,22 @@ export type DashboardMetrics = {
   missingCurrentMonthSummary: number;
 };
 
+export type DashboardUpcomingWorkItem = {
+  itemName: string;
+  dueDate: string;
+  computedStatus: TaskComputedStatus;
+  parentVisible: boolean;
+  owner: string;
+  category: TaskCategory;
+};
+
+export type DashboardQueueItem = StudentListItem & {
+  upcomingWork: DashboardUpcomingWorkItem[];
+};
+
 export type DashboardSnapshot = {
   metrics: DashboardMetrics;
-  urgentStudents: StudentListItem[];
-  upcomingTasks: Array<{
-    familySlug: string;
-    studentSlug?: string;
-    familyLabel: string;
-    studentName: string;
-    itemName: string;
-    dueDate: string;
-    computedStatus: TaskComputedStatus;
-    parentVisible: boolean;
-  }>;
+  urgentStudents: DashboardQueueItem[];
   schoolFitInsights: Array<{
     studentSlug: string;
     studentName: string;
@@ -430,8 +433,16 @@ export type PortalStudentCase = {
   tier: string;
   currentPhase: string;
   overallStatus: OverallStatus;
-  currentSummary?: MonthlySummary;
-  summaryHistory: MonthlySummary[];
+  currentSummary?: {
+    id: string;
+    reportingMonth: string;
+    parentVisibleSummary: string;
+  };
+  summaryHistory: Array<{
+    id: string;
+    reportingMonth: string;
+    parentVisibleSummary: string;
+  }>;
   academicUpdate?: AcademicUpdate;
   profileUpdate?: ProfileUpdate;
   tasks: TaskItem[];

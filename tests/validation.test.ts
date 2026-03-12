@@ -73,6 +73,35 @@ describe("schema validation", () => {
     expect(result.success).toBe(true);
   });
 
+  it("rejects create-flow testing baselines outside SAT and ACT bounds", () => {
+    const familyResult = familyWithStudentSchema.safeParse({
+      familyLabel: "Morgan Family",
+      parentContactName: "Parent",
+      parentEmail: "parent@example.com",
+      studentName: "Alex Morgan",
+      gradeLevel: "Grade 10",
+      pathway: "us_college",
+      tier: "Core",
+      currentPhase: "Launch",
+      overallStatus: "green",
+      statusReason: "The student has a clear launch plan and no active blockers.",
+      currentSat: "1700",
+    });
+    const studentResult = createStudentSchema.safeParse({
+      studentName: "Alex Morgan",
+      gradeLevel: "Grade 10",
+      pathway: "us_college",
+      tier: "Core",
+      currentPhase: "Launch",
+      overallStatus: "green",
+      statusReason: "The student has a clear launch plan and no active blockers.",
+      projectedAct: "40",
+    });
+
+    expect(familyResult.success).toBe(false);
+    expect(studentResult.success).toBe(false);
+  });
+
   it("parses numeric testing fields as optional numbers", () => {
     const result = testingProfileSchema.safeParse({
       currentSat: "1450",
