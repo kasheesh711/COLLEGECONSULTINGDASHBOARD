@@ -42,11 +42,9 @@ export default async function AnalyticsApplicantDetailPage({
   if (!dataset) {
     return (
       <div className="panel rounded-[2rem] p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-          Extracted profile
-        </p>
+        <p className="ui-kicker">Extracted profile</p>
         <h1 className="section-title mt-3 text-3xl font-semibold">Applicant detail is unavailable</h1>
-        <p className="mt-4 text-base leading-8 text-[var(--muted)]">{loadError}</p>
+        <p className="mt-4 text-base leading-8 text-[var(--foreground-soft)]">{loadError}</p>
       </div>
     );
   }
@@ -58,16 +56,17 @@ export default async function AnalyticsApplicantDetailPage({
     <div className="space-y-6">
       <Link
         href={returnHref}
-        className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold"
+        className="ui-button-secondary"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to filtered analytics view
       </Link>
       {selectedSchool ? (
-        <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/80 px-4 py-4 text-sm text-[var(--muted)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em]">School context</p>
+        <div className="ui-subtle-card px-4 py-4 text-sm text-[var(--foreground-soft)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">School context</p>
           <p className="mt-2">
-            Opened from the {rosterOutcome ?? "school"} cohort for <span className="font-semibold text-[var(--foreground)]">{selectedSchool}</span>.
+            Opened from the {rosterOutcome ?? "school"} cohort for{" "}
+            <span className="font-semibold text-[var(--foreground)]">{selectedSchool}</span>.
           </p>
         </div>
       ) : null}

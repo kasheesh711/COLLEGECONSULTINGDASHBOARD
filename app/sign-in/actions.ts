@@ -25,6 +25,15 @@ export async function requestMagicLink(formData: FormData) {
     redirect("/sign-in?error=demo_mode");
   }
 
+  const allowedEmails = (process.env.ALLOWED_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (allowedEmails.length > 0 && !allowedEmails.includes(email)) {
+    redirect("/sign-in?error=email_not_allowed");
+  }
+
   const headerStore = await headers();
   const origin =
     headerStore.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";

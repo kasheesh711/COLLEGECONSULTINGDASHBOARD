@@ -73,21 +73,21 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
   );
 
   return (
-    <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-4">
+    <div className="ui-subtle-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold">{metricLabel} vs GPA</p>
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
             Accepted and rejected outcomes at the selected school
           </p>
         </div>
-        <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+        <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
           <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[var(--brand-blue)]" />
             Accepted
           </span>
           <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--danger)]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
             Rejected
           </span>
         </div>
@@ -98,7 +98,7 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
         className="h-auto w-full"
         role="img"
       >
-        <rect x="0" y="0" width={WIDTH} height={HEIGHT} rx="24" fill="#fcfaf6" />
+        <rect x="0" y="0" width={WIDTH} height={HEIGHT} rx="24" fill="#f8f4ed" />
 
         {yTicks.map((tick) => {
           const y = scale(tick, yDomain.min, yDomain.max, HEIGHT - PADDING.bottom, PADDING.top);
@@ -109,10 +109,10 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
                 x2={WIDTH - PADDING.right}
                 y1={y}
                 y2={y}
-                stroke="#e6ddd0"
+                stroke="#ded4c6"
                 strokeDasharray="4 6"
               />
-              <text x={PADDING.left - 12} y={y + 4} textAnchor="end" fontSize="12" fill="#7b6e63">
+              <text x={PADDING.left - 12} y={y + 4} textAnchor="end" fontSize="12" fill="#7b7266">
                 {tick.toFixed(2)}
               </text>
             </g>
@@ -128,9 +128,9 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
                 x2={x}
                 y1={PADDING.top}
                 y2={HEIGHT - PADDING.bottom}
-                stroke="#efe7db"
+                stroke="#e8dfd2"
               />
-              <text x={x} y={HEIGHT - PADDING.bottom + 24} textAnchor="middle" fontSize="12" fill="#7b6e63">
+              <text x={x} y={HEIGHT - PADDING.bottom + 24} textAnchor="middle" fontSize="12" fill="#7b7266">
                 {tick}
               </text>
             </g>
@@ -142,14 +142,14 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
           x2={PADDING.left}
           y1={PADDING.top}
           y2={HEIGHT - PADDING.bottom}
-          stroke="#8e8073"
+          stroke="#80786e"
         />
         <line
           x1={PADDING.left}
           x2={WIDTH - PADDING.right}
           y1={HEIGHT - PADDING.bottom}
           y2={HEIGHT - PADDING.bottom}
-          stroke="#8e8073"
+          stroke="#80786e"
         />
 
         {points.map((point) => {
@@ -163,7 +163,7 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
                 cx={x}
                 cy={y}
                 r="5.5"
-                fill={point.outcome === "accepted" ? "var(--accent)" : "var(--danger)"}
+                fill={point.outcome === "accepted" ? "var(--brand-blue)" : "var(--accent)"}
                 fillOpacity="0.8"
                 stroke="#ffffff"
                 strokeWidth="1.5"
@@ -177,7 +177,7 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
           y={HEIGHT - 10}
           textAnchor="middle"
           fontSize="13"
-          fill="#403c39"
+          fill="#35425f"
         >
           {metricLabel}
         </text>
@@ -186,7 +186,7 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
           y={HEIGHT / 2}
           textAnchor="middle"
           fontSize="13"
-          fill="#403c39"
+          fill="#35425f"
           transform={`rotate(-90 16 ${HEIGHT / 2})`}
         >
           Unweighted GPA
@@ -194,7 +194,7 @@ export function ScatterPlot({ points, metric }: ScatterPlotProps) {
       </svg>
 
       {points.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--muted)]">
+        <p className="mt-4 text-sm text-[var(--foreground-soft)]">
           No applicants have both {metricLabel} and unweighted GPA for this filtered school view.
         </p>
       ) : null}

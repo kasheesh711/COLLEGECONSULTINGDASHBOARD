@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { createFamilyWithStudentAction } from "@/app/families/actions";
+import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
 import { FlashBanner } from "@/components/shared/flash-banner";
 import { SectionCard } from "@/components/shared/section-card";
-import { createFamilyWithStudentAction } from "@/app/families/actions";
-import { formatRoleLabel } from "@/lib/auth/roles";
 import { isSupabaseConfigured } from "@/lib/auth/config";
+import { formatRoleLabel } from "@/lib/auth/roles";
 import { requireInternalAccess } from "@/lib/auth/session";
 import { getInternalAssigneeOptions } from "@/lib/db/queries";
 
@@ -25,27 +26,22 @@ export default async function NewFamilyPage({
   const error = getStringValue(resolved.error);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              Family creation
-            </p>
-            <h1 className="section-title mt-3 text-4xl font-semibold">Create family + first student</h1>
-            <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-              This flow creates the household record, primary parent contact, and the first student profile in one pass.
-              Current mode: {formatRoleLabel(actor.activeRole)}.
-            </p>
-          </div>
-          <Link
-            href="/families"
-            className="rounded-full border border-[var(--border)] bg-white/70 px-4 py-2 text-sm font-semibold"
-          >
+    <div className="mx-auto max-w-6xl space-y-6">
+      <InternalSurfaceHero
+        eyebrow="Family creation"
+        title="Create family + first student"
+        description={`One intake flow for the household, parent lead, and the first student profile. ${formatRoleLabel(actor.activeRole)} mode.`}
+        variant="form"
+        actions={
+          <Link href="/families" className="ui-button-secondary">
             Back to families
           </Link>
-        </div>
-      </section>
+        }
+      >
+        <span className="ui-chip" data-tone="accent">
+          Household + student in one pass
+        </span>
+      </InternalSurfaceHero>
 
       <FlashBanner message={message} error={error} />
 
@@ -53,42 +49,29 @@ export default async function NewFamilyPage({
         <SectionCard
           eyebrow="Household"
           title="Family details"
-          description="Household-level information used for ownership, parent access, and routing."
+          description="Ownership, parent access, and routing metadata."
+          variant="form"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-semibold text-[var(--muted)]">Family label</span>
-              <input
-                name="familyLabel"
-                required
-                placeholder="Chen Family"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+              <span className="font-semibold text-[var(--foreground-soft)]">Family label</span>
+              <input name="familyLabel" required placeholder="Chen Family" className="ui-field" />
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Parent contact name</span>
-              <input
-                name="parentContactName"
-                required
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+              <span className="font-semibold text-[var(--foreground-soft)]">Parent contact name</span>
+              <input name="parentContactName" required className="ui-field" />
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Parent email</span>
-              <input
-                type="email"
-                name="parentEmail"
-                required
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+              <span className="font-semibold text-[var(--foreground-soft)]">Parent email</span>
+              <input type="email" name="parentEmail" required className="ui-field" />
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Strategist owner</span>
+              <span className="font-semibold text-[var(--foreground-soft)]">Strategist owner</span>
               <select
                 name="strategistOwnerId"
                 defaultValue={actor.activeRole === "strategist" ? actor.profileId : ""}
                 disabled={actor.activeRole === "strategist"}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none disabled:opacity-60"
+                className="ui-field disabled:opacity-60"
               >
                 <option value="">Assign later</option>
                 {assignees.strategists.map((profile) => (
@@ -99,12 +82,8 @@ export default async function NewFamilyPage({
               </select>
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Ops owner</span>
-              <select
-                name="opsOwnerId"
-                defaultValue=""
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              >
+              <span className="font-semibold text-[var(--foreground-soft)]">Ops owner</span>
+              <select name="opsOwnerId" defaultValue="" className="ui-field">
                 <option value="">Assign later</option>
                 {assignees.ops.map((profile) => (
                   <option key={profile.id} value={profile.id}>
@@ -119,33 +98,21 @@ export default async function NewFamilyPage({
         <SectionCard
           eyebrow="Student"
           title="First student profile"
-          description="The first student sets the initial operational posture for the family workspace."
+          description="Required posture first, optional testing context second."
+          variant="form"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Student name</span>
-              <input
-                name="studentName"
-                required
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+              <span className="font-semibold text-[var(--foreground-soft)]">Student name</span>
+              <input name="studentName" required className="ui-field" />
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Grade level</span>
-              <input
-                name="gradeLevel"
-                defaultValue="Grade 11"
-                required
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+              <span className="font-semibold text-[var(--foreground-soft)]">Grade level</span>
+              <input name="gradeLevel" defaultValue="Grade 11" required className="ui-field" />
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Pathway</span>
-              <select
-                name="pathway"
-                defaultValue="us_college"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              >
+              <span className="font-semibold text-[var(--foreground-soft)]">Pathway</span>
+              <select name="pathway" defaultValue="us_college" className="ui-field">
                 <option value="us_college">US College</option>
                 <option value="uk_college">UK College</option>
                 <option value="us_boarding">US Boarding</option>
@@ -153,105 +120,55 @@ export default async function NewFamilyPage({
               </select>
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Tier</span>
-              <input
-                name="tier"
-                defaultValue="Core Pathway"
-                required
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+              <span className="font-semibold text-[var(--foreground-soft)]">Tier</span>
+              <input name="tier" defaultValue="Core Pathway" required className="ui-field" />
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Current phase</span>
-              <input
-                name="currentPhase"
-                defaultValue="Launch and roadmap"
-                required
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+              <span className="font-semibold text-[var(--foreground-soft)]">Current phase</span>
+              <input name="currentPhase" defaultValue="Launch and roadmap" required className="ui-field" />
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Overall status</span>
-              <select
-                name="overallStatus"
-                defaultValue="green"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              >
+              <span className="font-semibold text-[var(--foreground-soft)]">Overall status</span>
+              <select name="overallStatus" defaultValue="green" className="ui-field">
                 <option value="green">Green</option>
                 <option value="yellow">Yellow</option>
                 <option value="red">Red</option>
               </select>
             </label>
-            <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Current SAT</span>
-              <input
-                type="number"
-                name="currentSat"
-                min="0"
-                placeholder="1410"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
-            </label>
-            <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Projected SAT</span>
-              <input
-                type="number"
-                name="projectedSat"
-                min="0"
-                placeholder="1500"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
-            </label>
-            <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Current ACT</span>
-              <input
-                type="number"
-                name="currentAct"
-                min="0"
-                placeholder="30"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
-            </label>
-            <label className="space-y-2 text-sm">
-              <span className="font-semibold text-[var(--muted)]">Projected ACT</span>
-              <input
-                type="number"
-                name="projectedAct"
-                min="0"
-                placeholder="33"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
+            <div className="md:col-span-2 grid gap-3 rounded-[1.5rem] border border-[var(--border)] bg-white/68 p-4 sm:grid-cols-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-blue)] sm:col-span-2">
+                Optional testing context
+              </p>
+              <input type="number" name="currentSat" min="0" placeholder="Current SAT" className="ui-field" />
+              <input type="number" name="projectedSat" min="0" placeholder="Projected SAT" className="ui-field" />
+              <input type="number" name="currentAct" min="0" placeholder="Current ACT" className="ui-field" />
+              <input type="number" name="projectedAct" min="0" placeholder="Projected ACT" className="ui-field" />
+            </div>
+            <label className="space-y-2 text-sm md:col-span-2">
+              <span className="font-semibold text-[var(--foreground-soft)]">Status reason</span>
+              <textarea name="statusReason" required rows={4} className="ui-field" />
             </label>
             <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-semibold text-[var(--muted)]">Status reason</span>
-              <textarea
-                name="statusReason"
-                required
-                rows={4}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-              />
-            </label>
-            <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-semibold text-[var(--muted)]">Testing strategy note</span>
+              <span className="font-semibold text-[var(--foreground-soft)]">Testing strategy note</span>
               <textarea
                 name="strategyNote"
                 rows={3}
-                placeholder="Optional context for current/projected score planning"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                placeholder="Optional context for current or projected testing posture"
+                className="ui-field"
               />
             </label>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
               type="submit"
               disabled={!isSupabaseConfigured()}
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="ui-button-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               Create family and first student
             </button>
             {!isSupabaseConfigured() ? (
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-[var(--foreground-soft)]">
                 Live Supabase credentials are required to write real records.
               </p>
             ) : null}

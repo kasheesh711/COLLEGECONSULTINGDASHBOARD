@@ -69,9 +69,9 @@ export function FamilyCockpitOverview({ family }: FamilyCockpitOverviewProps) {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.95fr]">
-        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/75 p-5 shadow-sm">
+        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/82 p-5 shadow-[0_14px_32px_rgba(21,40,61,0.05)]">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            <span className="rounded-full bg-[var(--brand-blue-soft)] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--brand-blue)]">
               Household posture
             </span>
             {leadStudent ? <StatusBadge status={leadStudent.overallStatus} /> : null}
@@ -79,63 +79,63 @@ export function FamilyCockpitOverview({ family }: FamilyCockpitOverviewProps) {
           <h3 className="mt-4 text-2xl font-semibold">
             {leadSummary?.biggestWin ?? "Current family summary has not been written yet."}
           </h3>
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+          <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">
             {leadSummary?.biggestRisk ??
               leadStudent?.statusReason ??
               "Add a current monthly summary so the household posture is easier to scan."}
           </p>
           <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Lead student</p>
+            <div className="ui-subtle-card px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Lead student</p>
               <p className="mt-2 font-semibold">{leadStudent?.studentName ?? "None assigned"}</p>
             </div>
-            <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Next critical due</p>
+            <div className="ui-subtle-card px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Next critical due</p>
               <p className="mt-2 font-semibold">
                 {nextCritical ? formatDisplayDate(nextCritical.task.dueDate) : "No active due date"}
               </p>
             </div>
-            <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Updated</p>
+            <div className="ui-subtle-card px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Updated</p>
               <p className="mt-2 font-semibold">{formatDisplayDate(family.lastUpdatedDate)}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-[1.75rem] border border-[var(--danger)]/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,244,241,0.96))] p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--danger)]">
+        <div className="ui-ink-card p-5">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/74">
             <CircleAlert className="h-4 w-4" />
             Attention now
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[1.25rem] bg-white/85 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Pending family input</p>
+            <div className="rounded-[1.25rem] bg-white/92 px-4 py-3 text-[var(--foreground)]">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Pending family input</p>
               <p className="mt-2 text-2xl font-semibold">{pendingItems.length}</p>
             </div>
-            <div className="rounded-[1.25rem] bg-white/85 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Overdue items</p>
+            <div className="rounded-[1.25rem] bg-white/92 px-4 py-3 text-[var(--foreground)]">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Overdue items</p>
               <p className="mt-2 text-2xl font-semibold">{overdueTasks.length}</p>
             </div>
           </div>
           <div className="mt-4 space-y-3">
             {nextCritical ? (
-              <div className="rounded-[1.25rem] bg-white/85 px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+              <div className="rounded-[1.25rem] bg-white/92 px-4 py-3 text-[var(--foreground)]">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                   <Clock3 className="h-4 w-4" />
                   Next move
                 </div>
                 <p className="mt-2 font-semibold">{nextCritical.task.itemName}</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">
+                <p className="mt-1 text-sm text-[var(--foreground-soft)]">
                   {nextCritical.label} • {formatDisplayDate(nextCritical.task.dueDate)}
                 </p>
               </div>
             ) : null}
-            <div className="rounded-[1.25rem] bg-white/85 px-4 py-3">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+            <div className="rounded-[1.25rem] bg-white/92 px-4 py-3 text-[var(--foreground)]">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                 <Users className="h-4 w-4" />
                 Top next actions
               </div>
-              <ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--muted)]">
+              <ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--foreground-soft)]">
                 {topNextActions.length === 0 ? (
                   <li>No active next actions logged yet.</li>
                 ) : (
@@ -147,7 +147,7 @@ export function FamilyCockpitOverview({ family }: FamilyCockpitOverviewProps) {
         </div>
       </div>
 
-      <nav className="sticky top-20 z-10 overflow-x-auto rounded-full border border-[var(--border)] bg-white/90 px-3 py-3 shadow-sm backdrop-blur">
+      <nav className="sticky top-16 z-10 lg:top-4 overflow-x-auto rounded-full border border-[var(--border)] bg-[rgba(255,253,250,0.94)] px-3 py-3 shadow-[0_12px_24px_rgba(21,40,61,0.06)] backdrop-blur">
         <div className="flex min-w-max gap-2">
           {[
             ["overview", "Overview"],
@@ -161,7 +161,7 @@ export function FamilyCockpitOverview({ family }: FamilyCockpitOverviewProps) {
             <Link
               key={id}
               href={`#${id}`}
-              className="rounded-full border border-[var(--border)] bg-[var(--background-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em]"
+              className="rounded-full border border-[var(--border)] bg-white/78 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--foreground-soft)] hover:bg-white"
             >
               {label}
             </Link>

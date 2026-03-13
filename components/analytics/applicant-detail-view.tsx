@@ -4,14 +4,14 @@ import type { CollegebaseApplicantRecord, CollegebaseOtherSection } from "@/lib/
 
 function renderSectionValue(section: CollegebaseOtherSection) {
   if (section.kind === "text") {
-    return <p className="text-sm leading-7 text-[var(--muted)]">{section.value}</p>;
+    return <p className="text-sm leading-7 text-[var(--foreground-soft)]">{section.value}</p>;
   }
 
   if (section.kind === "list") {
     return (
-      <ul className="space-y-2 text-sm leading-7 text-[var(--muted)]">
+      <ul className="space-y-2 text-sm leading-7 text-[var(--foreground-soft)]">
         {section.value.map((item) => (
-          <li key={item} className="rounded-[1.25rem] bg-white/70 px-4 py-3">
+          <li key={item} className="ui-subtle-card px-4 py-3 shadow-none">
             {item}
           </li>
         ))}
@@ -24,9 +24,9 @@ function renderSectionValue(section: CollegebaseOtherSection) {
       {Object.entries(section.value).map(([label, value]) => (
         <div
           key={label}
-          className="rounded-[1.25rem] border border-[var(--border)] bg-white/70 px-4 py-3"
+          className="ui-subtle-card px-4 py-3 shadow-none"
         >
-          <dt className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{label}</dt>
+          <dt className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">{label}</dt>
           <dd className="mt-2 text-sm leading-7 text-[var(--foreground)]">{value}</dd>
         </div>
       ))}
@@ -67,11 +67,9 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
   return (
     <div className="space-y-8">
       <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-          Extracted applicant profile
-        </p>
+        <p className="ui-kicker">Extracted applicant profile</p>
         <h1 className="section-title mt-3 text-4xl font-semibold">{applicant.profileLabel}</h1>
-        <p className="mt-4 max-w-4xl text-base leading-8 text-[var(--muted)]">
+        <p className="mt-4 max-w-4xl text-base leading-8 text-[var(--foreground-soft)]">
           {applicant.profileSubtitle}
           {applicant.overview.raceLabel ? ` • ${applicant.overview.raceLabel}` : ""}
           {applicant.overview.genderLabel ? ` • ${applicant.overview.genderLabel}` : ""}
@@ -80,7 +78,7 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
           {applicant.normalizedMajors.map((major) => (
             <span
               key={major}
-              className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]"
+              className="ui-chip"
             >
               {major}
             </span>
@@ -88,7 +86,7 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
           {applicant.overview.badges.map((badge) => (
             <span
               key={badge}
-              className="rounded-full border border-[var(--border)] bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]"
+              className="ui-chip"
             >
               {badge}
             </span>
@@ -97,20 +95,20 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Scores</p>
+        <div className="ui-subtle-card p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Scores</p>
           <p className="mt-3 text-sm leading-7">{formatScoreLine(applicant) || "No score data"}</p>
         </div>
-        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Accepted</p>
+        <div className="ui-subtle-card p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Accepted</p>
           <p className="section-title mt-3 text-3xl font-semibold">{acceptedSchools.length}</p>
         </div>
-        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Rejected</p>
+        <div className="ui-subtle-card p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Rejected</p>
           <p className="section-title mt-3 text-3xl font-semibold">{rejectedSchools.length}</p>
         </div>
-        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Waitlisted</p>
+        <div className="ui-subtle-card p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Waitlisted</p>
           <p className="section-title mt-3 text-3xl font-semibold">{applicant.waitlistSchoolNames.length}</p>
         </div>
       </section>
@@ -119,13 +117,14 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
         <SectionCard
           eyebrow="Outcomes"
           title="School decisions"
-          description="Accepted and rejected outcomes are kept separate from waitlists."
+          description="Accepted and rejected outcomes are separated from waitlists."
           icon={GraduationCap}
+          variant="data"
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Accepted</p>
-              <ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--muted)]">
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Accepted</p>
+              <ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--foreground-soft)]">
                 {acceptedSchools.length > 0 ? (
                   acceptedSchools.map((school) => <li key={school}>{school}</li>)
                 ) : (
@@ -133,9 +132,9 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
                 )}
               </ul>
             </div>
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Rejected</p>
-              <ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--muted)]">
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Rejected</p>
+              <ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--foreground-soft)]">
                 {rejectedSchools.length > 0 ? (
                   rejectedSchools.map((school) => <li key={school}>{school}</li>)
                 ) : (
@@ -145,9 +144,9 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
             </div>
           </div>
           {applicant.waitlistSchoolNames.length > 0 ? (
-            <div className="mt-4 rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Waitlists</p>
-              <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+            <div className="ui-subtle-card mt-4 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Waitlists</p>
+              <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">
                 {applicant.waitlistSchoolNames.join(" • ")}
               </p>
             </div>
@@ -159,24 +158,25 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
           title="Academic snapshot"
           description="Testing, GPA, course rigor, and rank details from the extracted card."
           icon={Sparkles}
+          variant="data"
         >
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Unweighted GPA</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Unweighted GPA</p>
               <p className="mt-3 text-xl font-semibold">{applicant.academics.unweightedGpa ?? "—"}</p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Weighted GPA</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Weighted GPA</p>
               <p className="mt-3 text-xl font-semibold">{applicant.academics.weightedGpa ?? "—"}</p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Class rank</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Class rank</p>
               <p className="mt-3 text-xl font-semibold">
                 {applicant.academics.classRankDisplay ?? "Not reported"}
               </p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">AP / IB courses</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">AP / IB courses</p>
               <p className="mt-3 text-xl font-semibold">
                 {applicant.academics.apCourseCount ?? 0} AP • {applicant.academics.ibCourseCount ?? 0} IB
               </p>
@@ -191,10 +191,11 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
           title="Extracurricular profile"
           description="Sorted activity descriptions from the extracted profile."
           icon={Medal}
+          variant="data"
         >
-          <ul className="space-y-3 text-sm leading-7 text-[var(--muted)]">
+          <ul className="space-y-3 text-sm leading-7 text-[var(--foreground-soft)]">
             {applicant.extracurricularItems.map((item) => (
-              <li key={`${item.sortOrder}-${item.description}`} className="rounded-[1.25rem] bg-white/70 px-4 py-3">
+              <li key={`${item.sortOrder}-${item.description}`} className="ui-subtle-card px-4 py-3 shadow-none">
                 {item.description}
               </li>
             ))}
@@ -206,19 +207,20 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
           title="Recognition and distinctions"
           description="Awards are preserved as extracted text without extra scoring."
           icon={ScrollText}
+          variant="data"
         >
-          <ul className="space-y-3 text-sm leading-7 text-[var(--muted)]">
+          <ul className="space-y-3 text-sm leading-7 text-[var(--foreground-soft)]">
             {applicant.awardItems.length > 0 ? (
               applicant.awardItems.map((item) => (
                 <li
                   key={`${item.sortOrder}-${item.description}`}
-                  className="rounded-[1.25rem] bg-white/70 px-4 py-3"
+                  className="ui-subtle-card px-4 py-3 shadow-none"
                 >
                   {item.description}
                 </li>
               ))
             ) : (
-              <li className="rounded-[1.25rem] bg-white/70 px-4 py-3">No awards listed.</li>
+              <li className="ui-subtle-card px-4 py-3 shadow-none">No awards listed.</li>
             )}
           </ul>
         </SectionCard>
@@ -228,13 +230,14 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
         <SectionCard
           eyebrow="Profile notes"
           title="Essays, hooks, tags, and evaluations"
-          description="These fields stay grouped by their extracted section name."
+          description="Extracted notes remain grouped by their original section name."
           icon={Sparkles}
+          variant="data"
         >
           <div className="grid gap-4 xl:grid-cols-2">
             {optionalSections.map(([label, section]) => (
-              <div key={label} className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--background-soft)] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{label}</p>
+              <div key={label} className="ui-subtle-card p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">{label}</p>
                 <div className="mt-3">{renderSectionValue(section)}</div>
               </div>
             ))}
@@ -248,8 +251,9 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
           title="Extraction source"
           description="Original capture metadata for this record."
           icon={Globe}
+          variant="data"
         >
-          <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm leading-7 text-[var(--muted)]">
+          <div className="ui-subtle-card p-4 text-sm leading-7 text-[var(--foreground-soft)]">
             <p>{applicant.sourceSnapshot.title ?? "Collegebase capture"}</p>
             {applicant.sourceSnapshot.url ? <p>{applicant.sourceSnapshot.url}</p> : null}
           </div>
@@ -258,4 +262,3 @@ export function ApplicantDetailView({ applicant }: { applicant: CollegebaseAppli
     </div>
   );
 }
-

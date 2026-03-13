@@ -25,7 +25,7 @@ const RAW_OUTPUT_PATH = path.join(
 );
 const NORMALIZED_OUTPUT_PATH = path.join(
   process.cwd(),
-  "tmp/collegebase/collegebase-applications.normalized.json",
+  "data/collegebase/collegebase-applications.normalized.json",
 );
 const DEBUG_OUTPUT_PATH = path.join(
   process.cwd(),
@@ -511,6 +511,7 @@ function focusAtlasTab(windowId, tabIndex) {
 
 function ensureOutputDirectory() {
   mkdirSync(path.dirname(RAW_OUTPUT_PATH), { recursive: true });
+  mkdirSync(path.dirname(NORMALIZED_OUTPUT_PATH), { recursive: true });
 }
 
 function sleep(ms) {

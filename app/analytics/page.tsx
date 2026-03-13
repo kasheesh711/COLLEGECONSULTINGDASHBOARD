@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BarChart3, Filter, Search, SlidersHorizontal } from "lucide-react";
+import { applyAnalyticsFilters } from "@/app/analytics/actions";
 import { ScatterPlot } from "@/components/analytics/scatter-plot";
 import { MetricCard } from "@/components/shared/metric-card";
 import { SectionCard } from "@/components/shared/section-card";
@@ -79,12 +80,10 @@ export default async function AnalyticsPage({
   if (!dataset) {
     return (
       <div className="panel rounded-[2rem] p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-          Analytics
-        </p>
+        <p className="ui-kicker">Analytics</p>
         <h1 className="section-title mt-3 text-3xl font-semibold">Collegebase analytics is unavailable</h1>
-        <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-          This route reads a local normalized dataset from `tmp/collegebase`. Regenerate it with
+        <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--foreground-soft)]">
+          This route reads a local normalized dataset from `data/collegebase`. Regenerate it with
           `npm run extract:collegebase`, then verify the refresh checklist in `docs/analytics-collegebase.md`.
         </p>
         <p className="mt-4 rounded-[1.25rem] bg-[var(--warn-soft)] px-4 py-3 text-sm text-[var(--warn)]">
@@ -107,61 +106,65 @@ export default async function AnalyticsPage({
       <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-4xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              Analytics
-            </p>
+            <p className="ui-kicker">Analytics</p>
             <h1 className="section-title mt-3 text-4xl font-semibold">Collegebase admissions analytics</h1>
-            <p className="mt-4 text-base leading-8 text-[var(--muted)]">
-              Query the extracted applicant dataset by school, intended major, GPA, SAT, and ACT. Search a school to split accepted versus rejected cohorts, compare score averages, and drill into the underlying profiles.
+            <p className="mt-4 text-base leading-8 text-[var(--foreground-soft)]">
+              Filter the extracted applicant dataset by school, intended major, GPA, SAT, and ACT, then split accepted versus rejected cohorts and drill into the underlying profiles.
             </p>
           </div>
-          <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 px-4 py-4 text-sm text-[var(--muted)]">
-            <p>Mode: Internal-only reference, read-only</p>
-            <p>Applicant records: {dataset.records.length}</p>
-            <p>Unique schools: {dataset.availableSchools.length}</p>
-            <p>Selected view: {summaryLabel}</p>
+          <div className="ui-subtle-card px-4 py-4 text-sm text-[var(--foreground-soft)]">
+            <p>Internal research reference</p>
+            <p>{dataset.records.length} applicant records</p>
+            <p>{dataset.availableSchools.length} unique schools</p>
+            <p>Current view: {summaryLabel}</p>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 fade-up-stagger md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Filtered applicants"
           value={String(snapshot.coverage.applicantCount)}
           helper={`${snapshot.coverage.schoolCount} schools across accepted and rejected outcomes`}
+          variant="data"
         />
         <MetricCard
           label="SAT coverage"
           value={String(snapshot.coverage.satCount)}
           helper="Applicants with reported SAT"
+          variant="data"
         />
         <MetricCard
           label="ACT coverage"
           value={String(snapshot.coverage.actCount)}
           helper="Applicants with reported ACT"
+          variant="data"
         />
         <MetricCard
           label="GPA coverage"
           value={String(snapshot.coverage.gpaCount)}
           helper="Applicants with unweighted GPA"
+          variant="data"
         />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+        <div className="ui-subtle-card p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-blue)]">
             Dataset assumptions
           </p>
-          <ul className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
+          <ul className="mt-4 space-y-3 text-sm leading-7 text-[var(--foreground-soft)]">
             {COLLEGEBASE_ANALYTICS_ASSUMPTIONS.map((assumption) => (
-              <li key={assumption} className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
+              <li key={assumption} className="ui-subtle-card px-4 py-3 shadow-none">
                 {assumption}
               </li>
             ))}
           </ul>
         </div>
-        <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/80 p-5 text-sm leading-7 text-[var(--muted)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em]">Refresh and verification</p>
+        <div className="ui-subtle-card p-5 text-sm leading-7 text-[var(--foreground-soft)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-blue)]">
+            Refresh and verification
+          </p>
           <p className="mt-4">
             Source file: <code>{COLLEGEBASE_ANALYTICS_DATASET_PATH}</code>
           </p>
@@ -177,15 +180,16 @@ export default async function AnalyticsPage({
       <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
         <SectionCard
           eyebrow="Filters"
-          title="Search and constrain the applicant pool"
-          description="URL params are the source of truth, so filtered views stay shareable."
+          title="Research filter rail"
+          description="URL params remain the source of truth so filtered views stay shareable."
           icon={Filter}
+          variant="data"
         >
-          <form className="space-y-4">
+          <form action={applyAnalyticsFilters} className="space-y-4">
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">School search</span>
-              <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-3">
-                <Search className="h-4 w-4 text-[var(--muted)]" />
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">School search</span>
+              <div className="ui-field flex items-center gap-2 pl-3">
+                <Search className="h-4 w-4 text-[var(--foreground-soft)]" />
                 <input
                   name="schoolQuery"
                   defaultValue={filters.schoolQuery ?? ""}
@@ -196,11 +200,11 @@ export default async function AnalyticsPage({
             </label>
 
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">School</span>
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">School</span>
               <select
                 name="school"
                 defaultValue={filters.school ?? ""}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                className="ui-field w-full"
               >
                 <option value="">All schools</option>
                 {schoolOptions.map((school) => (
@@ -212,11 +216,11 @@ export default async function AnalyticsPage({
             </label>
 
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">Intended major</span>
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Intended major</span>
               <select
                 name="major"
                 defaultValue={filters.major ?? ""}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                className="ui-field w-full"
               >
                 <option value="">All majors</option>
                 {snapshot.availableMajors.map((major) => (
@@ -229,7 +233,7 @@ export default async function AnalyticsPage({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">GPA min</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">GPA min</span>
                 <input
                   name="gpaMin"
                   type="number"
@@ -237,11 +241,11 @@ export default async function AnalyticsPage({
                   min="0"
                   max="5"
                   defaultValue={filters.gpaMin ?? ""}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">GPA max</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">GPA max</span>
                 <input
                   name="gpaMax"
                   type="number"
@@ -249,67 +253,67 @@ export default async function AnalyticsPage({
                   min="0"
                   max="5"
                   defaultValue={filters.gpaMax ?? ""}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">SAT min</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">SAT min</span>
                 <input
                   name="satMin"
                   type="number"
                   min="200"
                   max="1600"
                   defaultValue={filters.satMin ?? ""}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">SAT max</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">SAT max</span>
                 <input
                   name="satMax"
                   type="number"
                   min="200"
                   max="1600"
                   defaultValue={filters.satMax ?? ""}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">ACT min</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">ACT min</span>
                 <input
                   name="actMin"
                   type="number"
                   min="1"
                   max="36"
                   defaultValue={filters.actMin ?? ""}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">ACT max</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">ACT max</span>
                 <input
                   name="actMax"
                   type="number"
                   min="1"
                   max="36"
                   defaultValue={filters.actMax ?? ""}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
             </div>
 
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">Applicant roster</span>
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Applicant roster</span>
               <select
                 name="outcome"
                 defaultValue={filters.outcome}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                className="ui-field w-full"
               >
                 <option value="all">Accepted + rejected</option>
                 <option value="accepted">Accepted only</option>
@@ -322,13 +326,13 @@ export default async function AnalyticsPage({
             <div className="flex flex-wrap gap-3">
               <button
                 type="submit"
-                className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
+                className="ui-button-primary"
               >
                 Apply filters
               </button>
               <Link
                 href="/analytics"
-                className="rounded-full border border-[var(--border)] bg-white px-5 py-3 text-sm font-semibold"
+                className="ui-button-secondary"
               >
                 Reset
               </Link>
@@ -343,22 +347,23 @@ export default async function AnalyticsPage({
             description={
               snapshot.selectedSchool
                 ? "Applicant-level averages for the selected university."
-                : "Macroscopic averages across all filtered application outcomes."
+                : "Average outcomes across the filtered applicant pool."
             }
             icon={BarChart3}
+            variant="data"
           >
             <div className="grid gap-4 lg:grid-cols-2">
               {[accepted, rejected].map((summary) =>
                 summary ? (
                   <article
                     key={summary.outcome}
-                    className="rounded-[1.75rem] border border-[var(--border)] bg-white/75 p-5"
+                    className="ui-subtle-card p-5"
                   >
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-blue)]">
                       {summary.outcome}
                     </p>
                     <p className="section-title mt-3 text-4xl font-semibold">{summary.totalCount}</p>
-                    <div className="mt-4 space-y-2 text-sm text-[var(--muted)]">
+                    <div className="mt-4 space-y-2 text-sm text-[var(--foreground-soft)]">
                       <p>SAT avg: {formatAverage(summary.averageSat, summary.satSampleSize)}</p>
                       <p>ACT avg: {formatAverage(summary.averageAct, summary.actSampleSize)}</p>
                       <p>GPA avg: {formatAverage(summary.averageGpa, summary.gpaSampleSize)}</p>
@@ -374,29 +379,30 @@ export default async function AnalyticsPage({
             title="Queryable school landscape"
             description="Use this roster to pivot into one university and open the accepted versus rejected split."
             icon={SlidersHorizontal}
+            variant="data"
           >
             <div className="space-y-3">
               {snapshot.schoolRows.slice(0, 18).map((school) => (
                 <div
                   key={school.schoolName}
-                  className="flex flex-col gap-3 rounded-[1.5rem] border border-[var(--border)] bg-white/75 px-4 py-4 md:flex-row md:items-center md:justify-between"
+                  className="ui-subtle-card flex flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div>
                     <p className="font-semibold">{school.schoolName}</p>
-                    <p className="text-sm text-[var(--muted)]">
+                    <p className="text-sm text-[var(--foreground-soft)]">
                       Accepted {school.acceptedCount} • Rejected {school.rejectedCount}
                     </p>
                   </div>
                   <Link
                     href={buildCollegebaseAnalyticsHref(resolved, { school: school.schoolName })}
-                    className="inline-flex rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold"
+                    className="ui-button-secondary"
                   >
                     View school
                   </Link>
                 </div>
               ))}
               {snapshot.schoolRows.length === 0 ? (
-                <p className="text-sm text-[var(--muted)]">
+                <p className="text-sm text-[var(--foreground-soft)]">
                   No school outcomes match the current applicant filters.
                 </p>
               ) : null}
@@ -414,24 +420,25 @@ export default async function AnalyticsPage({
             : "The SAT/ACT versus GPA plot is school-specific, so it appears after a university is selected."
         }
         icon={BarChart3}
+        variant="data"
       >
         <div className="mb-4 flex flex-wrap gap-3">
           <Link
             href={buildCollegebaseAnalyticsHref(resolved, { metric: "sat" })}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
               filters.metric === "sat"
-                ? "bg-[var(--accent)] text-white"
-                : "border border-[var(--border)] bg-white"
+                ? "bg-[var(--brand-blue)] text-white shadow-[0_12px_24px_rgba(61,121,168,0.2)]"
+                : "border border-[var(--border)] bg-white text-[var(--foreground)]"
             }`}
           >
             SAT
           </Link>
           <Link
             href={buildCollegebaseAnalyticsHref(resolved, { metric: "act" })}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
               filters.metric === "act"
-                ? "bg-[var(--accent)] text-white"
-                : "border border-[var(--border)] bg-white"
+                ? "bg-[var(--brand-blue)] text-white shadow-[0_12px_24px_rgba(61,121,168,0.2)]"
+                : "border border-[var(--border)] bg-white text-[var(--foreground)]"
             }`}
           >
             ACT
@@ -440,7 +447,7 @@ export default async function AnalyticsPage({
         {snapshot.selectedSchool ? (
           <ScatterPlot points={snapshot.scatter.points} metric={filters.metric} />
         ) : (
-          <div className="rounded-[1.75rem] border border-dashed border-[var(--border)] bg-white/60 px-6 py-8 text-sm leading-7 text-[var(--muted)]">
+          <div className="ui-subtle-card border-dashed px-6 py-8 text-sm leading-7 text-[var(--foreground-soft)]">
             Search or choose a school above to see the accepted versus rejected score distribution.
           </div>
         )}
@@ -455,6 +462,7 @@ export default async function AnalyticsPage({
             : "Select a school to split the applicant roster by accepted versus rejected."
         }
         icon={Search}
+        variant="data"
       >
         {snapshot.selectedSchool ? (
           <div className="grid gap-6 xl:grid-cols-2">
@@ -463,22 +471,22 @@ export default async function AnalyticsPage({
 
               return (
                 <div key={outcome} className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-blue)]">
                     {outcome}
                   </p>
                   {items.length > 0 ? (
                     items.map((item) => (
                       <article
                         key={`${outcome}-${item.sourceId}`}
-                        className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4"
+                        className="ui-subtle-card p-4"
                       >
                         <p className="font-semibold">{item.label}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">{item.subtitle}</p>
-                        <p className="mt-3 text-sm text-[var(--muted)]">
+                        <p className="mt-1 text-sm text-[var(--foreground-soft)]">{item.subtitle}</p>
+                        <p className="mt-3 text-sm text-[var(--foreground-soft)]">
                           GPA {item.unweightedGpa ?? "—"} • SAT {item.satComposite ?? "—"} • ACT{" "}
                           {item.actComposite ?? "—"}
                         </p>
-                        <p className="mt-2 text-sm text-[var(--muted)]">
+                        <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                           {item.majors.join(" • ") || "No intended major"} • {item.activityCount} activities •{" "}
                           {item.awardCount} awards
                         </p>
@@ -487,14 +495,14 @@ export default async function AnalyticsPage({
                             school: snapshot.selectedSchool,
                             rosterOutcome: outcome,
                           })}
-                          className="mt-4 inline-flex rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold"
+                          className="ui-button-secondary mt-4"
                         >
                           Open extracted profile
                         </Link>
                       </article>
                     ))
                   ) : (
-                    <p className="rounded-[1.5rem] bg-white/70 px-4 py-4 text-sm text-[var(--muted)]">
+                    <p className="ui-subtle-card px-4 py-4 text-sm text-[var(--foreground-soft)]">
                       No {outcome} applicants match the current filters.
                     </p>
                   )}
@@ -503,7 +511,7 @@ export default async function AnalyticsPage({
             })}
           </div>
         ) : (
-          <div className="rounded-[1.75rem] border border-dashed border-[var(--border)] bg-white/60 px-6 py-8 text-sm leading-7 text-[var(--muted)]">
+          <div className="ui-subtle-card border-dashed px-6 py-8 text-sm leading-7 text-[var(--foreground-soft)]">
             Choose a school from the filter rail or school landscape to unlock the applicant drill-down.
           </div>
         )}

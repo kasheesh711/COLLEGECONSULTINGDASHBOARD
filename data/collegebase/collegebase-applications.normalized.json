@@ -1,0 +1,183 @@
+{
+  "records": [
+    {
+      "sourceId": "995236fabb446c49",
+      "listName": "all",
+      "sourceCardIndex": 1,
+      "applicationYearLabel": "2023",
+      "overview": {
+        "badges": [
+          "3.8+",
+          "1500+/34+",
+          "art/hum"
+        ],
+        "intendedMajors": [
+          "Studio Art",
+          "Illustration"
+        ],
+        "raceLabel": "Asian",
+        "genderLabel": "Female"
+      },
+      "academics": {
+        "satComposite": 1500,
+        "unweightedGpa": 3.86,
+        "weightedGpa": 4.68,
+        "classRankDisplay": "None",
+        "apCourseCount": 7,
+        "rawItems": {
+          "SAT": "1500",
+          "ACT": "None",
+          "Unweighted GPA": "3.86",
+          "Weighted GPA": "4.68",
+          "Rank": "None",
+          "AP Courses": "7",
+          "IB Courses": "None",
+          "Honors Courses": "2",
+          "IB": "None",
+          "AP Testing": "AP Art, AP US History"
+        }
+      },
+      "extracurricularItems": [
+        {
+          "sortOrder": 1,
+          "description": "President and founder of heraldry club"
+        },
+        {
+          "sortOrder": 2,
+          "description": "Student aid in counseling office: Peer support and admin work"
+        }
+      ],
+      "awardItems": [
+        {
+          "sortOrder": 1,
+          "description": "AP Scholar with Distinction"
+        },
+        {
+          "sortOrder": 2,
+          "description": "National Silver Medal"
+        }
+      ],
+      "acceptanceSchoolNames": [
+        "University of Maryland, College Park",
+        "School of Visual Arts"
+      ],
+      "otherSections": {
+        "Rejections": {
+          "kind": "list",
+          "value": [
+            "Wesleyan University"
+          ]
+        },
+        "Waitlists": {
+          "kind": "list",
+          "value": [
+            "Tufts University"
+          ]
+        },
+        "Hooks": {
+          "kind": "text",
+          "value": "First-Gen"
+        },
+        "Letters of Recommendation": {
+          "kind": "list",
+          "value": [
+            "Art Teacher: Strong and detailed"
+          ]
+        },
+        "Interviews": {
+          "kind": "list",
+          "value": [
+            "Barnard College",
+            "Performance/Outcome: Personal favorite"
+          ]
+        },
+        "Essays": {
+          "kind": "kv",
+          "value": {
+            "Common App Essay Topic": "Journey with performing poetry",
+            "Supplemental Essay Topic": "Art portfolio process",
+            "Supplemental Essay School": "RISD"
+          }
+        },
+        "Tags": {
+          "kind": "list",
+          "value": [
+            "Art Club",
+            "Leadership"
+          ]
+        },
+        "Rating": {
+          "kind": "kv",
+          "value": {
+            "Academic Score": "7.8",
+            "Extracurricular Score": "6.5",
+            "Awards Score": "7",
+            "Overall Score": "70.4"
+          }
+        },
+        "Assigned Category": {
+          "kind": "text",
+          "value": "Artist"
+        }
+      },
+      "sourceSnapshot": {
+        "url": "https://app.collegebase.org/",
+        "title": "Collegebase | See Who Got In and Why"
+      }
+    },
+    {
+      "sourceId": "ef60c885e900fabf",
+      "listName": "all",
+      "sourceCardIndex": 2,
+      "applicationYearLabel": "2021",
+      "overview": {
+        "badges": [
+          "3.4+",
+          "other",
+          "stem"
+        ],
+        "intendedMajors": [
+          "Undecided"
+        ],
+        "raceLabel": "White",
+        "genderLabel": "Male"
+      },
+      "academics": {
+        "actComposite": 31,
+        "unweightedGpa": 3.47,
+        "classRankDisplay": "12/300",
+        "classRankNumerator": 12,
+        "classRankDenominator": 300,
+        "apCourseCount": 0,
+        "ibCourseCount": 0,
+        "rawItems": {
+          "SAT": "None",
+          "ACT": "31",
+          "Unweighted GPA": "3.47",
+          "Weighted GPA": "None",
+          "Rank": "12/300",
+          "AP Courses": "0",
+          "IB Courses": "0",
+          "Honors Courses": "None",
+          "IB": "None",
+          "AP Testing": "None"
+        }
+      },
+      "extracurricularItems": [
+        {
+          "sortOrder": 1,
+          "description": "Robotics club"
+        }
+      ],
+      "awardItems": [],
+      "acceptanceSchoolNames": [
+        "Albany College"
+      ],
+      "otherSections": {},
+      "sourceSnapshot": {
+        "url": "https://app.collegebase.org/",
+        "title": "Collegebase | See Who Got In and Why"
+      }
+    }
+  ]
+}

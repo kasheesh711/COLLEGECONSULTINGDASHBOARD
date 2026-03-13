@@ -1,7 +1,8 @@
 import { MailCheck } from "lucide-react";
+import { requestMagicLink } from "@/app/sign-in/actions";
+import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
 import { SectionCard } from "@/components/shared/section-card";
 import { getAppModeLabel, isSupabaseConfigured } from "@/lib/auth/config";
-import { requestMagicLink } from "@/app/sign-in/actions";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -18,6 +19,8 @@ const errorMap: Record<string, string> = {
     "Your sign-in completed, but the linked profile could not be prepared. Verify the matching profile record and try again.",
   profile_not_linked:
     "Your email is not linked to a dashboard profile yet. Add a matching profile row before signing in again.",
+  email_not_allowed:
+    "This email is not authorized to access the dashboard. Contact the administrator if you believe this is a mistake.",
 };
 
 export default async function SignInPage({
@@ -33,52 +36,55 @@ export default async function SignInPage({
   const live = isSupabaseConfigured();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-          Authentication
-        </p>
-        <h1 className="section-title mt-3 text-4xl font-semibold">Magic-link sign in</h1>
-        <p className="mt-4 text-base leading-8 text-[var(--muted)]">
-          Internal users and parents use the same login entry point. Access scope is
-          determined by the linked Supabase profile, assigned roles, and family
-          contact record.
-        </p>
-      </section>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <InternalSurfaceHero
+        eyebrow="Authentication"
+        title="Magic-link sign in"
+        description="One entry point for internal staff and invited parents. Access scope is determined by the linked Supabase profile and household relationship."
+        variant="auth"
+      >
+        <span className="ui-chip" data-tone="accent">
+          {getAppModeLabel()}
+        </span>
+        <span className="ui-chip" data-tone="muted">
+          Passwordless access
+        </span>
+      </InternalSurfaceHero>
 
       <SectionCard
-        eyebrow="Mode"
+        eyebrow="Access"
         title={getAppModeLabel()}
-        description="In demo mode the form stays visible but sign-in is intentionally disabled."
+        description="In demo mode the form remains visible, but sign-in stays disabled."
         icon={MailCheck}
+        variant="auth"
       >
         <form action={requestMagicLink} className="space-y-4">
           <input type="hidden" name="next" value={next} />
           <label className="block space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Email</span>
+            <span className="font-semibold text-[var(--foreground-soft)]">Email</span>
             <input
               type="email"
               name="email"
               placeholder="name@example.com"
               disabled={!live}
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="ui-field disabled:cursor-not-allowed disabled:opacity-60"
             />
           </label>
           <button
             type="submit"
             disabled={!live}
-            className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="ui-button-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             Send magic link
           </button>
         </form>
         {sent ? (
-          <p className="mt-4 rounded-2xl bg-[var(--success-soft)] px-4 py-3 text-sm text-[var(--success)]">
+          <p className="mt-4 rounded-[1.25rem] border border-[var(--success)]/14 bg-[var(--success-soft)] px-4 py-3 text-sm text-[var(--success)]">
             Magic link sent. Check your inbox and complete the redirect back to `/auth/callback`.
           </p>
         ) : null}
         {message ? (
-          <p className="mt-4 rounded-2xl bg-[var(--warn-soft)] px-4 py-3 text-sm text-[var(--warn)]">
+          <p className="mt-4 rounded-[1.25rem] border border-[var(--warn)]/14 bg-[var(--warn-soft)] px-4 py-3 text-sm text-[var(--warn)]">
             {message}
           </p>
         ) : null}

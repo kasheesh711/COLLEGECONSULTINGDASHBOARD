@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Compass, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowRight, Compass, LockKeyhole, NotebookTabs, Sparkles, Users } from "lucide-react";
+import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
 import { MetricCard } from "@/components/shared/metric-card";
 import { SectionCard } from "@/components/shared/section-card";
 import { getPreviewDashboardSnapshot, listPreviewFamilies } from "@/lib/db/queries";
@@ -13,157 +14,178 @@ export default async function Home() {
 
   return (
     <div className="space-y-10 fade-in">
-      <section className="grain panel overflow-hidden rounded-[2rem] px-6 py-8 md:px-10 md:py-12">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-5">
-            <span className="inline-flex items-center rounded-full border border-[var(--border)] bg-white/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              {getAppModeLabel()} workspace
-            </span>
-            <div className="space-y-4">
-              <h1 className="section-title max-w-4xl text-4xl leading-tight font-semibold md:text-6xl">
-                Run BeGifted as a student-first consulting cockpit.
-              </h1>
-              <p className="max-w-2xl text-base leading-8 text-[var(--muted)] md:text-lg">
-                The workspace now supports multi-student families, a student-first internal command center, and parent-safe reporting grouped by student.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:translate-y-[-1px]"
-              >
-                Open internal dashboard
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/portal"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-white/70 px-5 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-white"
-              >
-                Preview parent portal
-                <LockKeyhole className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-          <div className="grid min-w-full gap-4 md:min-w-[340px] md:grid-cols-2 lg:w-[360px] lg:grid-cols-1">
-            <MetricCard
-              label="Pilot families"
-              value={String(snapshot.metrics.activeFamilies)}
-              helper="Seeded household workspaces"
-            />
-            <MetricCard
-              label="Active students"
-              value={String(snapshot.metrics.activeStudents)}
-              helper="Student-first internal operating unit"
-            />
-          </div>
-        </div>
-      </section>
+      <InternalSurfaceHero
+        variant="home"
+        eyebrow="BeGifted workspace"
+        title="Editorial operations for private family advising."
+        description="A polished command surface for strategist, ops, and parent-safe reporting. The app stays read-first, student-centered, and tuned for high-touch US college execution."
+        actions={
+          <>
+            <Link href="/dashboard" className="ui-button-primary">
+              Open dashboard
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/portal" className="ui-button-secondary">
+              Preview portal
+              <LockKeyhole className="h-4 w-4" />
+            </Link>
+          </>
+        }
+      >
+        <span className="ui-chip" data-tone="accent">
+          {getAppModeLabel()}
+        </span>
+        <span className="ui-chip" data-tone="internal">
+          {snapshot.metrics.activeFamilies} pilot families
+        </span>
+        <span className="ui-chip" data-tone="urgent">
+          {snapshot.metrics.urgentStudents} urgent students
+        </span>
+      </InternalSurfaceHero>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 fade-up-stagger md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="Urgent students"
-          value={String(snapshot.metrics.urgentStudents)}
-          helper="Red posture or overdue work"
+          label="Families"
+          value={String(snapshot.metrics.activeFamilies)}
+          helper="Households live in the operating roster."
         />
         <MetricCard
-          label="Overdue items"
+          label="Students"
+          value={String(snapshot.metrics.activeStudents)}
+          helper="The daily operating unit for advising."
+        />
+        <MetricCard
+          label="Overdue"
           value={String(snapshot.metrics.overdueItems)}
-          helper="Tracked across all student portfolios"
+          helper="Tasks needing immediate follow-through."
+          tone="urgent"
         />
         <MetricCard
-          label="Testing profiles"
-          value={`${snapshot.metrics.testingProfilesReady}/${snapshot.metrics.activeStudents}`}
-          helper="Students with structured testing data"
+          label="Parent-ready"
+          value={String(snapshot.metrics.parentVisibleDueSoon)}
+          helper="Visible due-soon items already safe to share."
+          tone="muted"
         />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <SectionCard
-          eyebrow="Workspace"
-          title="What is implemented"
-          description="The repo now centers internal execution on students while preserving household context and parent-safe visibility boundaries."
-          icon={Sparkles}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-3xl bg-white/70 p-5">
-              <p className="text-sm font-semibold text-[var(--foreground)]">Multi-student families</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                Families now act as household containers with one or more student workspaces.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/70 p-5">
-              <p className="text-sm font-semibold text-[var(--foreground)]">Student 360 portfolios</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                Testing, activities, competitions, school targets, deadlines, and progress live on dedicated student pages.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/70 p-5">
-              <p className="text-sm font-semibold text-[var(--foreground)]">Native create flows</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                Internal users can create a family with its first student and add more students natively.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/70 p-5">
-              <p className="text-sm font-semibold text-[var(--foreground)]">Parent-safe grouping</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                The portal keeps parent-safe records separated by student while preserving family-wide context.
-              </p>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          eyebrow="Launch cohort"
-          title="Pilot household watchlist"
-          description="The seeded cohort includes a multi-student family so routing, aggregation, and portal grouping can be exercised immediately."
+          eyebrow="Entry points"
+          title="Start from the surface that matches the moment."
+          description="Fast internal routes stay operational; client-facing routes stay calmer and read-only."
           icon={Compass}
         >
-          <ul className="space-y-3">
-            {families.slice(0, 4).map((family) => (
-              <li
-                key={family.slug}
-                className="rounded-3xl border border-[var(--border)] bg-white/65 px-4 py-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">{family.familyLabel}</p>
-                    <p className="text-sm text-[var(--muted)]">
-                      {family.studentCount} students • {family.strategistOwnerName}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/families/${family.slug}`}
-                    className="text-sm font-semibold text-[var(--accent)]"
-                  >
-                    Open
-                  </Link>
-                </div>
-              </li>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                href: "/dashboard",
+                label: "Internal dashboard",
+                copy: "Urgency-ranked student queue, deadlines, and readiness posture.",
+              },
+              {
+                href: "/families",
+                label: "Family roster",
+                copy: "Scan families, compare risk, and open a household cockpit fast.",
+              },
+              {
+                href: "/analytics",
+                label: "Admissions analytics",
+                copy: "School-level applicant reference and drill-down research.",
+              },
+              {
+                href: "/portal",
+                label: "Parent portal",
+                copy: "Read-only monthly digest for linked pilot households.",
+              },
+            ].map((item) => (
+              <Link key={item.href} href={item.href} className="ui-subtle-card p-5 hover:bg-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-blue)]">
+                  Route
+                </p>
+                <p className="section-title mt-3 text-2xl font-semibold">{item.label}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">{item.copy}</p>
+              </Link>
             ))}
-          </ul>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          eyebrow="Pilot watchlist"
+          title="Households already exercising the core flows."
+          description="A small cohort to verify the shared family, student, and portal patterns."
+          icon={Users}
+          variant="data"
+        >
+          <div className="space-y-3">
+            {families.slice(0, 4).map((family) => (
+              <div key={family.slug} className="ui-subtle-card flex items-center justify-between gap-4 p-4">
+                <div>
+                  <p className="font-semibold text-[var(--foreground)]">{family.familyLabel}</p>
+                  <p className="mt-1 text-sm text-[var(--foreground-soft)]">
+                    {family.studentCount} students • {family.strategistOwnerName}
+                  </p>
+                </div>
+                <Link
+                  href={`/families/${family.slug}`}
+                  className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]"
+                >
+                  Open
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            ))}
+          </div>
         </SectionCard>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-4">
-        <SectionCard eyebrow="Route" title="Dashboard" description="Student-first triage and school-fit guidance." icon={Compass}>
-          <Link href="/dashboard" className="text-sm font-semibold text-[var(--accent)]">
-            Open /dashboard
-          </Link>
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <SectionCard
+          eyebrow="Operating stance"
+          title="What this release already does well."
+          description="The product is built as a premium internal cockpit, not a generic CRUD dashboard."
+          icon={Sparkles}
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              "Multi-student families stay grouped without flattening student-specific work.",
+              "Student 360 pages keep strategy, execution, and context in one scroll.",
+              "Parent-safe visibility is separated from internal-only records by design.",
+              "Analytics and college research remain reference surfaces, not workflow clutter.",
+            ].map((item) => (
+              <div key={item} className="ui-subtle-card p-4 text-sm leading-7 text-[var(--foreground-soft)]">
+                {item}
+              </div>
+            ))}
+          </div>
         </SectionCard>
-        <SectionCard eyebrow="Route" title="Families" description="Household roster with student counts and context." icon={Sparkles}>
-          <Link href="/families" className="text-sm font-semibold text-[var(--accent)]">
-            Open /families
-          </Link>
-        </SectionCard>
-        <SectionCard eyebrow="Route" title="Students" description="Dedicated student 360 strategy workspace." icon={Compass}>
-          <Link href="/students/new" className="text-sm font-semibold text-[var(--accent)]">
-            Open /students/new
-          </Link>
-        </SectionCard>
-        <SectionCard eyebrow="Docs" title="Documentation" description="Product spec and schema references for autonomous continuation." icon={BookOpen}>
-          <p className="text-sm leading-7 text-[var(--muted)]">
-            Start with <code>docs/PRD.md</code>, then <code>docs/data-model.md</code>.
-          </p>
+
+        <SectionCard
+          eyebrow="Reference"
+          title="Core docs for continued product work."
+          description="The repo treats product docs as the source of truth for UX, launch scope, and schema boundaries."
+          icon={NotebookTabs}
+          variant="form"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="ui-subtle-card p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-blue)]">
+                Product
+              </p>
+              <p className="mt-3 font-semibold">`docs/PRD.md`</p>
+              <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">
+                Launch scope, route priorities, and soft-launch boundaries.
+              </p>
+            </div>
+            <div className="ui-subtle-card p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-blue)]">
+                Data model
+              </p>
+              <p className="mt-3 font-semibold">`docs/data-model.md`</p>
+              <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">
+                Visibility boundaries, schema direction, and RLS intent.
+              </p>
+            </div>
+          </div>
         </SectionCard>
       </section>
     </div>

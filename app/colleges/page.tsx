@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Filter, Search, School } from "lucide-react";
+import { applyCollegeFilters } from "@/app/colleges/actions";
 import { addFamilyCollegeListItemAction } from "@/app/families/actions";
 import { FeaturedCollegeCard } from "@/components/colleges/featured-college-card";
 import { MetricCard } from "@/components/shared/metric-card";
@@ -21,6 +22,7 @@ import { cip4Options } from "@/lib/domain/cip4";
 import { collegeSearchFiltersSchema } from "@/lib/validation/schema";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+type CollegeBucket = "reach" | "target" | "likely";
 
 function getStringValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -88,6 +90,27 @@ function buildCollegeSelectionHref(
   return `/colleges?${params.toString()}`;
 }
 
+function getBucketStyles(bucket: CollegeBucket) {
+  if (bucket === "likely") {
+    return {
+      backgroundColor: "rgba(61, 121, 168, 0.12)",
+      color: "var(--brand-blue)",
+    };
+  }
+
+  if (bucket === "target") {
+    return {
+      backgroundColor: "var(--accent-soft)",
+      color: "var(--accent)",
+    };
+  }
+
+  return {
+    backgroundColor: "rgba(74, 90, 118, 0.12)",
+    color: "var(--ink)",
+  };
+}
+
 export default async function CollegesPage({
   searchParams,
 }: {
@@ -116,20 +139,15 @@ export default async function CollegesPage({
       <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              College explorer
-            </p>
+            <p className="ui-kicker">College explorer</p>
             <h1 className="section-title mt-3 text-4xl font-semibold">College Scorecard research explorer</h1>
-            <p className="mt-4 text-base leading-8 text-[var(--muted)]">
-              Search bachelor’s-dominant US institutions with consultant-friendly filters, then preview one featured school at a time before adding it into a family’s current list.
+            <p className="mt-4 text-base leading-8 text-[var(--foreground-soft)]">
+              Search bachelor’s-dominant US institutions, preview one lead option, and add it into an active family list without losing the research state.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             {family ? (
-              <Link
-                href={`/families/${family.slug}`}
-                className="inline-flex rounded-full border border-[var(--border)] bg-white/70 px-5 py-3 text-sm font-semibold"
-              >
+              <Link href={`/families/${family.slug}`} className="ui-button-secondary">
                 Back to family
               </Link>
             ) : null}
@@ -143,18 +161,19 @@ export default async function CollegesPage({
           title={family.familyLabel}
           description="Explorer actions stay family-aware when opened from a workspace."
           icon={School}
+          variant="data"
         >
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Primary applicant</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Primary applicant</p>
               <p className="mt-2 font-semibold">{primaryUsCollegeStudent?.studentName ?? "No US college applicant"}</p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Current list</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Current list</p>
               <p className="mt-2 font-semibold">{currentList?.listName ?? "No list yet"}</p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Testing</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Testing</p>
               <p className="mt-2 font-semibold">
                 {family.collegeStrategyProfile?.currentSat ?? primaryUsCollegeStudent?.testingProfile?.currentSat ?? "—"}
                 {family.collegeStrategyProfile?.projectedSat || primaryUsCollegeStudent?.testingProfile?.projectedSat
@@ -165,8 +184,8 @@ export default async function CollegesPage({
                   : ""}
               </p>
             </div>
-            <div className="rounded-[1.5rem] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Majors</p>
+            <div className="ui-subtle-card p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Majors</p>
               <p className="mt-2 font-semibold">
                 {family.collegeStrategyProfile?.intendedMajorLabels.join(" • ") || "Not set"}
               </p>
@@ -175,26 +194,30 @@ export default async function CollegesPage({
         </SectionCard>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 fade-up-stagger md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Search mode"
           value="Bachelor's"
           helper="Scorecard search always scopes to bachelor’s-dominant institutions"
+          variant="data"
         />
         <MetricCard
           label="Programs"
           value={filters.programCode ? "Major-aware" : "All majors"}
           helper="Controlled CIP-4 picker, not free text"
+          variant="data"
         />
         <MetricCard
           label="Current page"
           value={String((results?.page ?? filters.page ?? 0) + 1)}
           helper={`${results?.perPage ?? filters.perPage ?? 12} schools per page`}
+          variant="data"
         />
         <MetricCard
           label="Results"
           value={String(results?.total ?? 0)}
           helper="Matches returned by the College Scorecard API"
+          variant="data"
         />
       </section>
 
@@ -202,15 +225,16 @@ export default async function CollegesPage({
         <SectionCard
           eyebrow="Filters"
           title="Research filter rail"
-          description="Explorer state lives in the URL so searches stay shareable and deterministic."
+          description="Filters stay in the URL for shareable, deterministic review."
           icon={Filter}
+          variant="data"
         >
-          <form className="space-y-4">
+          <form action={applyCollegeFilters} className="space-y-4">
             {family ? <input type="hidden" name="family" value={family.slug} /> : null}
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">School name</span>
-              <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-3">
-                <Search className="h-4 w-4 text-[var(--muted)]" />
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">School name</span>
+              <div className="ui-field flex items-center gap-2 pl-3">
+                <Search className="h-4 w-4 text-[var(--foreground-soft)]" />
                 <input
                   name="q"
                   defaultValue={filters.query ?? ""}
@@ -221,30 +245,30 @@ export default async function CollegesPage({
             </label>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">State</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">State</span>
                 <input
                   name="state"
                   defaultValue={filters.state ?? ""}
                   placeholder="MA"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">City</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">City</span>
                 <input
                   name="city"
                   defaultValue={filters.city ?? ""}
                   placeholder="Boston"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
             </div>
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">Major / CIP-4</span>
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Major / CIP-4</span>
               <select
                 name="programCode"
                 defaultValue={filters.programCode ?? ""}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                className="ui-field w-full"
               >
                 <option value="">All majors</option>
                 {cip4Options.map((option) => (
@@ -255,11 +279,11 @@ export default async function CollegesPage({
               </select>
             </label>
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">Ownership</span>
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Ownership</span>
               <select
                 name="ownership"
                 defaultValue={filters.ownership ?? "all"}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                className="ui-field w-full"
               >
                 <option value="all">All ownership types</option>
                 <option value="Public">Public</option>
@@ -269,123 +293,123 @@ export default async function CollegesPage({
             </label>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">SAT min / max</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">SAT min / max</span>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     name="satMin"
                     defaultValue={filters.satMin ?? ""}
                     placeholder="1350"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                    className="ui-field w-full"
                   />
                   <input
                     name="satMax"
                     defaultValue={filters.satMax ?? ""}
                     placeholder="1550"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                    className="ui-field w-full"
                   />
                 </div>
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">Admission % min / max</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Admission % min / max</span>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     name="admissionRateMin"
                     defaultValue={filters.admissionRateMin != null ? Math.round(filters.admissionRateMin * 100) : ""}
                     placeholder="5"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                    className="ui-field w-full"
                   />
                   <input
                     name="admissionRateMax"
                     defaultValue={filters.admissionRateMax != null ? Math.round(filters.admissionRateMax * 100) : ""}
                     placeholder="25"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                    className="ui-field w-full"
                   />
                 </div>
               </label>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">Size min / max</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Size min / max</span>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     name="sizeMin"
                     defaultValue={filters.sizeMin ?? ""}
                     placeholder="5000"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                    className="ui-field w-full"
                   />
                   <input
                     name="sizeMax"
                     defaultValue={filters.sizeMax ?? ""}
                     placeholder="30000"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                    className="ui-field w-full"
                   />
                 </div>
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">Net price max</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Net price max</span>
                 <input
                   name="netPriceMax"
                   defaultValue={filters.netPriceMax ?? ""}
                   placeholder="35000"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">Completion min %</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Completion min %</span>
                 <input
                   name="completionMin"
                   defaultValue={filters.completionMin != null ? Math.round(filters.completionMin * 100) : ""}
                   placeholder="80"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">Retention min %</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Retention min %</span>
                 <input
                   name="retentionMin"
                   defaultValue={filters.retentionMin != null ? Math.round(filters.retentionMin * 100) : ""}
                   placeholder="90"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
             </div>
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">Earnings min</span>
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Earnings min</span>
               <input
                 name="earningsMin"
                 defaultValue={filters.earningsMin ?? ""}
                 placeholder="70000"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                className="ui-field w-full"
               />
             </label>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">ZIP</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">ZIP</span>
                 <input
                   name="zip"
                   defaultValue={filters.zip ?? ""}
                   placeholder="10001"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-2 block font-semibold text-[var(--muted)]">Distance</span>
+                <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Distance</span>
                 <input
                   name="distance"
                   defaultValue={filters.distance ?? ""}
                   placeholder="25mi"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                  className="ui-field w-full"
                 />
               </label>
             </div>
             <label className="block text-sm">
-              <span className="mb-2 block font-semibold text-[var(--muted)]">Sort</span>
+              <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Sort</span>
               <select
                 name="sort"
                 defaultValue={filters.sort ?? "name_asc"}
-                className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
+                className="ui-field w-full"
               >
                 <option value="name_asc">Name</option>
                 <option value="admission_rate_asc">Admission rate (lowest first)</option>
@@ -399,7 +423,7 @@ export default async function CollegesPage({
             </label>
             <button
               type="submit"
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
+              className="ui-button-primary"
             >
               Apply filters
             </button>
@@ -409,15 +433,16 @@ export default async function CollegesPage({
         <SectionCard
           eyebrow="Results"
           title="Featured school preview"
-          description="Select any result below to swap the editorial preview while keeping the roster fast to scan."
+          description="Select any result below to swap the featured school while keeping the roster fast to scan."
           icon={School}
+          variant="data"
         >
           {!isCollegeScorecardConfigured() ? (
             <div className="rounded-[1.5rem] bg-[var(--warn-soft)] p-5 text-sm leading-7 text-[var(--warn)]">
               Add `COLLEGE_SCORECARD_API_KEY` to `.env.local` to load live college data.
             </div>
           ) : results?.results.length === 0 || !featuredSchool || !featuredSuggestion ? (
-            <div className="rounded-[1.5rem] bg-white/70 p-5 text-sm leading-7 text-[var(--muted)]">
+            <div className="ui-subtle-card p-5 text-sm leading-7 text-[var(--foreground-soft)]">
               No schools matched the current filter set.
             </div>
           ) : (
@@ -466,20 +491,20 @@ export default async function CollegesPage({
                       <input type="hidden" name="fitRationale" value={featuredSuggestion.fitRationale} />
                       <button
                         type="submit"
-                        className="w-full rounded-full bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white"
+                        className="ui-button-primary w-full justify-center"
                       >
                         Add to {currentList.listName}
                       </button>
-                      <p className="text-sm text-[var(--muted)]">
-                        The selected preview stays family-aware, so adding from here writes into the active family list without losing the current search state.
+                      <p className="text-sm text-[var(--foreground-soft)]">
+                        The preview remains family-aware, so the selected school writes into the active list without resetting the search.
                       </p>
                     </form>
                   ) : family ? (
-                    <div className="rounded-[1rem] bg-white p-3 text-sm text-[var(--muted)]">
+                    <div className="ui-subtle-card p-3 text-sm text-[var(--foreground-soft)]">
                       Create a current named list in the family workspace to enable add actions.
                     </div>
                   ) : (
-                    <div className="rounded-[1rem] bg-white p-3 text-sm text-[var(--muted)]">
+                    <div className="ui-subtle-card p-3 text-sm text-[var(--foreground-soft)]">
                       Open this explorer from a family workspace to add the selected school directly into a list.
                     </div>
                   )
@@ -497,7 +522,7 @@ export default async function CollegesPage({
                       href={buildCollegeSelectionHref(resolved, school.scorecardSchoolId)}
                       className={`block rounded-[1.6rem] border p-4 transition ${
                         isSelected
-                          ? "border-[var(--accent)] bg-[var(--accent-soft)]/55 shadow-[0_16px_32px_rgba(31,45,39,0.08)]"
+                          ? "border-[var(--accent)] bg-[var(--accent-soft)]/55 shadow-[0_2px_4px_rgba(21,40,61,0.03),0_16px_32px_rgba(21,40,61,0.08)]"
                           : "border-[var(--border)] bg-white/68 hover:bg-white/86"
                       }`}
                     >
@@ -507,20 +532,7 @@ export default async function CollegesPage({
                             <h3 className="text-xl font-semibold">{school.schoolName}</h3>
                             <span
                               className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                              style={{
-                                backgroundColor:
-                                  suggestion.bucket === "likely"
-                                    ? "var(--success-soft)"
-                                    : suggestion.bucket === "target"
-                                      ? "var(--warn-soft)"
-                                      : "var(--danger-soft)",
-                                color:
-                                  suggestion.bucket === "likely"
-                                    ? "var(--success)"
-                                    : suggestion.bucket === "target"
-                                      ? "var(--warn)"
-                                      : "var(--danger)",
-                              }}
+                              style={getBucketStyles(suggestion.bucket)}
                             >
                               {suggestion.bucket} • fit {suggestion.fitScore}
                             </span>
@@ -530,10 +542,10 @@ export default async function CollegesPage({
                               </span>
                             ) : null}
                           </div>
-                          <p className="text-sm text-[var(--muted)]">
+                          <p className="text-sm text-[var(--foreground-soft)]">
                             {school.city}, {school.state} • {school.ownership}
                           </p>
-                          <div className="flex flex-wrap gap-4 text-sm text-[var(--muted)]">
+                          <div className="flex flex-wrap gap-4 text-sm text-[var(--foreground-soft)]">
                             <span>Admission {formatCollegePercent(school.admissionRate)}</span>
                             <span>SAT {school.satAverage ?? "—"}</span>
                             <span>Tuition {formatCollegeMoney(school.tuitionStickerPrice)}</span>
@@ -541,7 +553,7 @@ export default async function CollegesPage({
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-4 lg:min-w-[180px] lg:justify-end">
-                          <p className="max-w-sm text-sm leading-7 text-[var(--muted)]">
+                          <p className="max-w-sm text-sm leading-7 text-[var(--foreground-soft)]">
                             {suggestion.fitRationale}
                           </p>
                           <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)]">

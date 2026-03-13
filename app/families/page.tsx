@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Filter, Search } from "lucide-react";
-import { FlashBanner } from "@/components/shared/flash-banner";
 import { FamiliesRoster } from "@/components/shared/families-roster";
+import { FlashBanner } from "@/components/shared/flash-banner";
 import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
 import { formatRoleLabel } from "@/lib/auth/roles";
 import { requireInternalAccess } from "@/lib/auth/session";
@@ -47,61 +47,51 @@ export default async function FamiliesPage({
     .sort()[0];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <InternalSurfaceHero
-        eyebrow="Family list"
+        eyebrow="Family roster"
         title="Household workspace roster"
         description={
           <>
-            Signed in as {actor.fullName}. Current mode: {formatRoleLabel(actor.activeRole)}. This
-            roster is optimized for quick household comparison, with risk, due dates, and pending
-            decisions visible before you open a case.
+            {formatRoleLabel(actor.activeRole)} view for {actor.fullName}. Compare risk, due dates, ownership, and pending decisions before opening a family cockpit.
           </>
         }
         actions={
           <>
-            <Link
-              href="/families/new"
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
-            >
+            <Link href="/families/new" className="ui-button-primary">
               New family
             </Link>
-            <Link
-              href="/students/new"
-              className="rounded-full border border-[var(--border)] bg-white/70 px-5 py-3 text-sm font-semibold"
-            >
+            <Link href="/students/new" className="ui-button-secondary">
               Add student
             </Link>
           </>
         }
       >
-        <span className="rounded-full bg-[var(--danger-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--danger)]">
-          {urgentHouseholds} urgent households
+        <span className="ui-chip" data-tone="urgent">
+          {urgentHouseholds} urgent
         </span>
-        <span className="rounded-full bg-[var(--warn-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--warn)]">
-          {pendingDecisionHouseholds} with pending decisions
+        <span className="ui-chip" data-tone="accent">
+          {pendingDecisionHouseholds} pending decisions
         </span>
         {nextDue ? (
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-            Next critical due {formatDisplayDate(nextDue)}
+          <span className="ui-chip" data-tone="internal">
+            Next due {formatDisplayDate(nextDue)}
           </span>
         ) : null}
       </InternalSurfaceHero>
 
       <FlashBanner message={message} error={error} />
 
-      <section className="sticky top-20 z-10 rounded-[2rem] border border-[var(--border)] bg-white/90 px-5 py-5 shadow-sm backdrop-blur">
+      <section className="sticky top-16 z-20 lg:top-4 rounded-[2rem] border border-[var(--border)] bg-[rgba(255,253,250,0.95)] px-5 py-5 shadow-[0_14px_30px_rgba(21,40,61,0.06)] backdrop-blur">
         <div className="mb-4 flex items-center gap-2">
-          <Filter className="h-4 w-4 text-[var(--muted)]" />
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-            Sticky filters
-          </p>
+          <Filter className="h-4 w-4 text-[var(--brand-blue)]" />
+          <p className="ui-kicker">Filter rail</p>
         </div>
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Search</span>
-            <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-3">
-              <Search className="h-4 w-4 text-[var(--muted)]" />
+            <span className="font-semibold text-[var(--foreground-soft)]">Search</span>
+            <div className="flex items-center gap-2 rounded-[1.25rem] border border-[var(--border)] bg-white/80 px-3 py-3">
+              <Search className="h-4 w-4 text-[var(--foreground-soft)]" />
               <input
                 name="search"
                 defaultValue={filters.search ?? ""}
@@ -111,12 +101,12 @@ export default async function FamiliesPage({
             </div>
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Strategist</span>
+            <span className="font-semibold text-[var(--foreground-soft)]">Strategist</span>
             <select
               name="strategist"
               defaultValue={filters.strategist ?? "all"}
               disabled={actor.activeRole !== "ops"}
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-3 outline-none disabled:opacity-60"
+              className="ui-field disabled:opacity-60"
             >
               <option value="all">All strategists</option>
               {strategistOptions.map((option) => (
@@ -127,12 +117,8 @@ export default async function FamiliesPage({
             </select>
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Pathway</span>
-            <select
-              name="pathway"
-              defaultValue={filters.pathway ?? "all"}
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-3 outline-none"
-            >
+            <span className="font-semibold text-[var(--foreground-soft)]">Pathway</span>
+            <select name="pathway" defaultValue={filters.pathway ?? "all"} className="ui-field">
               <option value="all">All pathways</option>
               <option value="us_college">US College</option>
               <option value="uk_college">UK College</option>
@@ -141,12 +127,8 @@ export default async function FamiliesPage({
             </select>
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Status</span>
-            <select
-              name="status"
-              defaultValue={filters.status ?? "all"}
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-3 outline-none"
-            >
+            <span className="font-semibold text-[var(--foreground-soft)]">Status</span>
+            <select name="status" defaultValue={filters.status ?? "all"} className="ui-field">
               <option value="all">All statuses</option>
               <option value="green">Green</option>
               <option value="yellow">Yellow</option>
@@ -154,12 +136,8 @@ export default async function FamiliesPage({
             </select>
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Deadline window</span>
-            <select
-              name="window"
-              defaultValue={filters.deadlineWindow ?? "all"}
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-3 outline-none"
-            >
+            <span className="font-semibold text-[var(--foreground-soft)]">Deadline window</span>
+            <select name="window" defaultValue={filters.deadlineWindow ?? "all"} className="ui-field">
               <option value="all">All deadlines</option>
               <option value="7">Next 7 days</option>
               <option value="30">Next 30 days</option>
@@ -167,10 +145,7 @@ export default async function FamiliesPage({
             </select>
           </label>
           <div className="md:col-span-2 xl:col-span-5">
-            <button
-              type="submit"
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
-            >
+            <button type="submit" className="ui-button-primary">
               Apply filters
             </button>
           </div>

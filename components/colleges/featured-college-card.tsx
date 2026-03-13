@@ -10,21 +10,23 @@ type FeaturedCollegeCardProps = {
   actionSlot?: ReactNode;
 };
 
+const studentSizeFormatter = new Intl.NumberFormat("en-US");
+
 const bucketTheme = {
   reach: {
     label: "Reach",
-    solid: "var(--danger)",
-    soft: "var(--danger-soft)",
+    solid: "var(--ink)",
+    soft: "rgba(74, 90, 118, 0.12)",
   },
   target: {
     label: "Target",
-    solid: "var(--warn)",
-    soft: "var(--warn-soft)",
+    solid: "var(--accent)",
+    soft: "var(--accent-soft)",
   },
   likely: {
     label: "Likely",
-    solid: "var(--success)",
-    soft: "var(--success-soft)",
+    solid: "var(--brand-blue)",
+    soft: "rgba(61, 121, 168, 0.12)",
   },
 } as const;
 
@@ -62,7 +64,7 @@ export function FeaturedCollegeCard({
   ];
 
   return (
-    <article className="grain panel overflow-hidden rounded-[2rem]">
+    <article className="grain panel overflow-hidden rounded-[2rem] shadow-[var(--shadow-elevated)]">
       <div className="relative h-[280px] overflow-hidden md:h-[340px]">
         {school.heroImage ? (
           <img
@@ -78,25 +80,25 @@ export function FeaturedCollegeCard({
               backgroundImage: `
                 radial-gradient(circle at 18% 24%, rgba(255,255,255,0.42), transparent 19%),
                 radial-gradient(circle at 83% 18%, rgba(255,255,255,0.16), transparent 14%),
-                linear-gradient(140deg, ${heroAccent} 0%, rgba(28,42,38,0.94) 52%, rgba(95,71,48,0.88) 100%)
+                linear-gradient(140deg, ${heroAccent} 0%, rgba(28,38,60,0.96) 52%, rgba(153,92,40,0.84) 100%)
               `,
             }}
           >
             <div className="flex h-full items-end px-6 py-6 md:px-8">
-              <div className="max-w-lg rounded-[1.5rem] border border-white/20 bg-[rgba(25,24,24,0.28)] px-5 py-4 text-white backdrop-blur-sm">
+              <div className="max-w-lg rounded-[1.5rem] border border-white/20 bg-[rgba(19,31,51,0.34)] px-5 py-4 text-white">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/72">
                   BeGifted college preview
                 </p>
                 <p className="mt-3 text-sm leading-7 text-white/86">
-                  Curated imagery is not available for this school yet, so the featured card falls back to the route’s editorial campus treatment.
+                  Curated imagery is not available for this school yet, so the preview falls back to the route’s editorial campus treatment.
                 </p>
               </div>
             </div>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(16,18,17,0.74)] via-[rgba(16,18,17,0.12)] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(16,22,34,0.78)] via-[rgba(16,22,34,0.14)] to-transparent" />
         <div className="absolute left-5 top-5 flex h-24 w-24 flex-col items-center justify-center rounded-full border border-white/55 bg-[rgba(251,249,244,0.95)] text-center shadow-lg md:left-7 md:top-7 md:h-28 md:w-28">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-soft)]">
             {activeTheme.label}
           </span>
           <span className="section-title mt-1 text-3xl font-semibold text-[var(--foreground)]">
@@ -114,7 +116,7 @@ export function FeaturedCollegeCard({
               </span>
               {school.studentSize ? (
                 <span className="rounded-full border border-white/28 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/86">
-                  {school.studentSize.toLocaleString()} students
+                  {studentSizeFormatter.format(school.studentSize)} students
                 </span>
               ) : null}
             </div>
@@ -133,10 +135,10 @@ export function FeaturedCollegeCard({
       <div className="grid gap-8 px-6 py-7 md:px-8 md:py-8 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-blue)]">
               Selection rationale
             </p>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">{suggestion.fitRationale}</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--foreground-soft)]">{suggestion.fitRationale}</p>
           </div>
 
           {school.matchedPrograms.length > 0 ? (
@@ -144,7 +146,7 @@ export function FeaturedCollegeCard({
               {school.matchedPrograms.map((program) => (
                 <span
                   key={`${school.scorecardSchoolId}-${program.code}`}
-                  className="rounded-full border border-[var(--border)] bg-white/78 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]"
+                  className="ui-chip"
                 >
                   {program.title}
                 </span>
@@ -158,13 +160,13 @@ export function FeaturedCollegeCard({
               return (
                 <div
                   key={card.label}
-                  className="rounded-[1.6rem] border border-[var(--border)] bg-white/72 p-4 shadow-[0_18px_35px_rgba(31,45,39,0.06)]"
+                  className="ui-subtle-card p-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                       {card.label}
                     </p>
-                    <span className="rounded-full bg-[var(--background-soft)] p-2 text-[var(--accent)]">
+                    <span className="rounded-full bg-[var(--background-soft)] p-2 text-[var(--brand-blue)]">
                       <Icon className="h-4 w-4" />
                     </span>
                   </div>
@@ -178,7 +180,7 @@ export function FeaturedCollegeCard({
         </div>
 
         <div className="space-y-5">
-          <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/78 p-5">
+          <div className="ui-subtle-card p-5">
             <div className="flex items-start gap-5">
               <div className="flex flex-col items-center gap-4">
                 <div
@@ -189,7 +191,7 @@ export function FeaturedCollegeCard({
                 >
                   <div className="flex h-full w-full items-center justify-center rounded-full bg-[var(--background-soft)]">
                     <div className="text-center">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-soft)]">
                         Admission
                       </p>
                       <p className="section-title mt-2 text-3xl font-semibold text-[var(--foreground)]">
@@ -198,7 +200,7 @@ export function FeaturedCollegeCard({
                     </div>
                   </div>
                 </div>
-                <p className="text-center text-sm leading-6 text-[var(--muted)]">
+                <p className="text-center text-sm leading-6 text-[var(--foreground-soft)]">
                   Acceptance posture stays visible without turning the explorer into a generic table.
                 </p>
               </div>
@@ -210,8 +212,8 @@ export function FeaturedCollegeCard({
                 >
                   {activeTheme.label} bucket
                 </div>
-                <p className="text-sm leading-7 text-[var(--muted)]">
-                  This featured card is the selected-school preview for the current result set. Add it to the active family list directly from here, then continue scanning the lighter results roster below.
+                <p className="text-sm leading-7 text-[var(--foreground-soft)]">
+                  This is the active preview for the current result set. Add it to the live family list from here, then continue scanning the lighter roster below.
                 </p>
                 {actionSlot}
               </div>
@@ -219,8 +221,8 @@ export function FeaturedCollegeCard({
           </div>
 
           {school.demographicMix && school.demographicMix.length > 0 ? (
-            <div className="rounded-[1.75rem] border border-[var(--border)] bg-white/72 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+            <div className="ui-subtle-card p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-blue)]">
                 Campus diversity
               </p>
               <div
@@ -240,7 +242,7 @@ export function FeaturedCollegeCard({
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
                 {school.demographicMix.map((item) => (
-                  <div key={item.label} className="inline-flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <div key={item.label} className="inline-flex items-center gap-2 text-sm text-[var(--foreground-soft)]">
                     <span
                       className="h-3 w-3 rounded-full"
                       style={{ backgroundColor: item.colorToken }}

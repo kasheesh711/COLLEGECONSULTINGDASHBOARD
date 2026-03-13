@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { FlashBanner } from "@/components/shared/flash-banner";
-import { SectionCard } from "@/components/shared/section-card";
 import { createStudentAction } from "@/app/families/actions";
+import { FlashBanner } from "@/components/shared/flash-banner";
+import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
+import { SectionCard } from "@/components/shared/section-card";
 import { isSupabaseConfigured } from "@/lib/auth/config";
 import { formatRoleLabel } from "@/lib/auth/roles";
 import { requireInternalAccess } from "@/lib/auth/session";
@@ -28,25 +29,19 @@ export default async function NewStudentPage({
     const families = await listInternalFamilies(actor);
 
     return (
-      <div className="space-y-8">
-        <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-            Add student
-          </p>
-          <h1 className="section-title mt-3 text-4xl font-semibold">Choose a family first</h1>
-          <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-            Current mode: {formatRoleLabel(actor.activeRole)}. Student creation attaches the new student to an existing family workspace.
-          </p>
-        </section>
+      <div className="space-y-6">
+        <InternalSurfaceHero
+          eyebrow="Add student"
+          title="Choose a family first"
+          description={`Student creation attaches the new student to an existing family workspace. ${formatRoleLabel(actor.activeRole)} mode.`}
+          variant="form"
+        />
         <div className="grid gap-4 md:grid-cols-2">
           {families.map((family) => (
-            <Link
-              key={family.slug}
-              href={`/students/new?family=${family.slug}`}
-              className="panel rounded-[2rem] p-6 transition hover:translate-y-[-1px]"
-            >
-              <h2 className="section-title text-2xl font-semibold">{family.familyLabel}</h2>
-              <p className="mt-3 text-sm text-[var(--muted)]">
+            <Link key={family.slug} href={`/students/new?family=${family.slug}`} className="panel rounded-[2rem] border p-6 hover:bg-white">
+              <p className="ui-kicker">Household</p>
+              <h2 className="section-title mt-3 text-3xl font-semibold">{family.familyLabel}</h2>
+              <p className="mt-3 text-sm text-[var(--foreground-soft)]">
                 {family.parentContactName} • {family.studentCount} students
               </p>
             </Link>
@@ -59,69 +54,49 @@ export default async function NewStudentPage({
   const family = await getInternalFamilyBySlug(actor, familySlug);
   if (!family) {
     return (
-      <div className="panel rounded-[2rem] p-8 text-sm leading-7 text-[var(--muted)]">
+      <div className="panel rounded-[2rem] border p-8 text-sm leading-7 text-[var(--foreground-soft)]">
         Family access is not available in the current role.
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <section className="panel rounded-[2rem] px-6 py-8 md:px-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-              Add student
-            </p>
-            <h1 className="section-title mt-3 text-4xl font-semibold">{family.familyLabel}</h1>
-            <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-              Create an additional student inside this family workspace.
-            </p>
-          </div>
-          <Link
-            href={`/families/${family.slug}`}
-            className="rounded-full border border-[var(--border)] bg-white/70 px-4 py-2 text-sm font-semibold"
-          >
+    <div className="mx-auto max-w-5xl space-y-6">
+      <InternalSurfaceHero
+        eyebrow="Add student"
+        title={family.familyLabel}
+        description="Create an additional student within this family workspace."
+        variant="form"
+        actions={
+          <Link href={`/families/${family.slug}`} className="ui-button-secondary">
             Back to family
           </Link>
-        </div>
-      </section>
+        }
+      />
 
       <FlashBanner message={message} error={error} />
 
       <SectionCard
         eyebrow="Student"
         title="New student profile"
-        description="Start with core posture and testing baseline; deeper portfolio modules can be added after creation."
+        description="Core posture first, optional testing context second."
+        variant="form"
       >
         <form action={createStudentAction} className="grid gap-4 md:grid-cols-2">
           <input type="hidden" name="familyId" value={family.id} />
           <input type="hidden" name="familySlug" value={family.slug} />
           <input type="hidden" name="returnPath" value={`/students/new?family=${family.slug}`} />
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Student name</span>
-            <input
-              name="studentName"
-              required
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
+            <span className="font-semibold text-[var(--foreground-soft)]">Student name</span>
+            <input name="studentName" required className="ui-field" />
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Grade level</span>
-            <input
-              name="gradeLevel"
-              defaultValue="Grade 11"
-              required
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
+            <span className="font-semibold text-[var(--foreground-soft)]">Grade level</span>
+            <input name="gradeLevel" defaultValue="Grade 11" required className="ui-field" />
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Pathway</span>
-            <select
-              name="pathway"
-              defaultValue="us_college"
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            >
+            <span className="font-semibold text-[var(--foreground-soft)]">Pathway</span>
+            <select name="pathway" defaultValue="us_college" className="ui-field">
               <option value="us_college">US College</option>
               <option value="uk_college">UK College</option>
               <option value="us_boarding">US Boarding</option>
@@ -129,98 +104,48 @@ export default async function NewStudentPage({
             </select>
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Tier</span>
-            <input
-              name="tier"
-              defaultValue="Core Pathway"
-              required
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
+            <span className="font-semibold text-[var(--foreground-soft)]">Tier</span>
+            <input name="tier" defaultValue="Core Pathway" required className="ui-field" />
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Current phase</span>
-            <input
-              name="currentPhase"
-              defaultValue="Launch and roadmap"
-              required
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
+            <span className="font-semibold text-[var(--foreground-soft)]">Current phase</span>
+            <input name="currentPhase" defaultValue="Launch and roadmap" required className="ui-field" />
           </label>
           <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Overall status</span>
-            <select
-              name="overallStatus"
-              defaultValue="green"
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            >
+            <span className="font-semibold text-[var(--foreground-soft)]">Overall status</span>
+            <select name="overallStatus" defaultValue="green" className="ui-field">
               <option value="green">Green</option>
               <option value="yellow">Yellow</option>
               <option value="red">Red</option>
             </select>
           </label>
-          <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Current SAT</span>
-            <input
-              type="number"
-              min="0"
-              name="currentSat"
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
-          </label>
-          <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Projected SAT</span>
-            <input
-              type="number"
-              min="0"
-              name="projectedSat"
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
-          </label>
-          <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Current ACT</span>
-            <input
-              type="number"
-              min="0"
-              name="currentAct"
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
-          </label>
-          <label className="space-y-2 text-sm">
-            <span className="font-semibold text-[var(--muted)]">Projected ACT</span>
-            <input
-              type="number"
-              min="0"
-              name="projectedAct"
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
+          <div className="md:col-span-2 grid gap-3 rounded-[1.5rem] border border-[var(--border)] bg-white/68 p-4 sm:grid-cols-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-blue)] sm:col-span-2">
+              Optional testing context
+            </p>
+            <input type="number" min="0" name="currentSat" placeholder="Current SAT" className="ui-field" />
+            <input type="number" min="0" name="projectedSat" placeholder="Projected SAT" className="ui-field" />
+            <input type="number" min="0" name="currentAct" placeholder="Current ACT" className="ui-field" />
+            <input type="number" min="0" name="projectedAct" placeholder="Projected ACT" className="ui-field" />
+          </div>
+          <label className="space-y-2 text-sm md:col-span-2">
+            <span className="font-semibold text-[var(--foreground-soft)]">Status reason</span>
+            <textarea name="statusReason" rows={4} required className="ui-field" />
           </label>
           <label className="space-y-2 text-sm md:col-span-2">
-            <span className="font-semibold text-[var(--muted)]">Status reason</span>
-            <textarea
-              name="statusReason"
-              rows={4}
-              required
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
+            <span className="font-semibold text-[var(--foreground-soft)]">Testing strategy note</span>
+            <textarea name="strategyNote" rows={3} className="ui-field" />
           </label>
-          <label className="space-y-2 text-sm md:col-span-2">
-            <span className="font-semibold text-[var(--muted)]">Testing strategy note</span>
-            <textarea
-              name="strategyNote"
-              rows={3}
-              className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 outline-none"
-            />
-          </label>
-          <div className="md:col-span-2 flex items-center gap-3">
+          <div className="md:col-span-2 flex flex-wrap items-center gap-3">
             <button
               type="submit"
               disabled={!isSupabaseConfigured()}
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="ui-button-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               Create student
             </button>
             {!isSupabaseConfigured() ? (
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-[var(--foreground-soft)]">
                 Live Supabase credentials are required to write real records.
               </p>
             ) : null}

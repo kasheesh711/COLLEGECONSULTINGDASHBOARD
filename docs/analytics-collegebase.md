@@ -4,7 +4,7 @@ This route is an internal-only, read-only reference tool. It does not read from 
 
 ## Source of truth
 
-- Normalized dataset path: `tmp/collegebase/collegebase-applications.normalized.json`
+- Normalized dataset path: `data/collegebase/collegebase-applications.normalized.json`
 - Raw capture path: `tmp/collegebase/collegebase-applications.raw.json`
 - Debug capture path: `tmp/collegebase/collegebase-applications.debug.json`
 - Refresh command: `npm run extract:collegebase`
@@ -22,7 +22,7 @@ This route is an internal-only, read-only reference tool. It does not read from 
 ## Refresh process
 
 1. Run `npm run extract:collegebase`.
-2. Confirm the command rewrites the files in `tmp/collegebase/`.
+2. Confirm the command rewrites the normalized file in `data/collegebase/` and raw/debug files in `tmp/collegebase/`.
 3. Open `/analytics` and verify the route loads without the dataset-unavailable state.
 4. Spot-check at least one school with both accepted and rejected applicants.
 5. Open one applicant drill-down and confirm the back link returns to the same filtered `/analytics` state.

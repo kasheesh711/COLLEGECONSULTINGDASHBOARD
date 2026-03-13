@@ -101,7 +101,7 @@ export type CollegebaseAnalyticsDataset = {
 
 export const COLLEGEBASE_ANALYTICS_DATASET_PATH = path.join(
   process.cwd(),
-  "tmp/collegebase/collegebase-applications.normalized.json",
+  "data/collegebase/collegebase-applications.normalized.json",
 );
 
 export const COLLEGEBASE_ANALYTICS_ASSUMPTIONS = [

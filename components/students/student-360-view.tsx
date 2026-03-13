@@ -47,6 +47,10 @@ type Student360ViewProps = {
   error?: string;
 };
 
+const fieldClass = "ui-field w-full";
+const submitButtonClass = "ui-button-primary disabled:cursor-not-allowed disabled:opacity-60";
+const checkboxLabelClass = "flex items-center gap-2 text-sm text-[var(--foreground-soft)]";
+
 function getStringLabel(value: string) {
   return value.replaceAll("_", " ");
 }
@@ -76,7 +80,7 @@ function StudentScopedHiddenInputs({
 }
 
 function SectionEmpty({ copy }: { copy: string }) {
-  return <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm text-[var(--muted)]">{copy}</div>;
+  return <div className="ui-subtle-card p-4 text-sm text-[var(--foreground-soft)]">{copy}</div>;
 }
 
 function Composer({
@@ -87,8 +91,10 @@ function Composer({
   children: React.ReactNode;
 }) {
   return (
-    <details className="mt-5 rounded-[1.5rem] bg-[var(--background-soft)] p-4">
-      <summary className="cursor-pointer font-semibold">{title}</summary>
+    <details className="mt-5 rounded-[1.5rem] border border-[var(--border)] bg-[var(--background-soft)]/78 p-4">
+      <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.16em] text-[var(--brand-blue)]">
+        {title}
+      </summary>
       <div className="mt-4">{children}</div>
     </details>
   );
@@ -112,13 +118,13 @@ function AnchorRail() {
         <a
           key={item.label}
           href={item.href}
-          className="flex items-center justify-between rounded-[1.25rem] border border-[var(--border)] bg-white/70 px-3 py-3 transition hover:bg-white"
+          className="ui-subtle-card flex items-center justify-between px-3 py-3 transition hover:bg-white"
         >
           <span className="flex items-center gap-3">
-            <item.icon className="h-4 w-4 text-[var(--muted)]" />
+            <item.icon className="h-4 w-4 text-[var(--brand-blue)]" />
             <span className="text-sm font-medium">{item.label}</span>
           </span>
-          <span className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Jump</span>
+          <span className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">Jump</span>
         </a>
       ))}
     </div>
@@ -135,8 +141,8 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[320px_1fr]">
         <aside className="panel rounded-[2rem] p-6">
-          <div className="rounded-[1.75rem] bg-white/70 p-5">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-[var(--accent)] text-xl font-semibold text-white">
+          <div className="ui-subtle-card p-5">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-[var(--brand-blue)] text-xl font-semibold text-white">
               {student.studentName
                 .split(" ")
                 .slice(0, 2)
@@ -144,19 +150,19 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                 .join("")}
             </div>
             <h1 className="section-title mt-4 text-3xl font-semibold">{student.studentName}</h1>
-            <p className="mt-2 text-sm text-[var(--muted)]">{family.familyLabel}</p>
+            <p className="mt-2 text-sm text-[var(--foreground-soft)]">{family.familyLabel}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <StatusBadge status={student.overallStatus} />
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+              <span className="ui-chip">
                 {student.gradeLevel}
               </span>
             </div>
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)]">{student.statusReason}</p>
+            <p className="mt-4 text-sm leading-7 text-[var(--foreground-soft)]">{student.statusReason}</p>
           </div>
 
           <AnchorRail />
 
-          <div className="mt-5 rounded-[1.5rem] bg-[var(--background-soft)] p-4 text-sm text-[var(--muted)]">
+          <div className="mt-5 rounded-[1.5rem] border border-[var(--border)] bg-[var(--background-soft)]/78 p-4 text-sm text-[var(--foreground-soft)]">
             <p>Pathway: {viewModel.pathwayLabel}</p>
             <p>Context: {viewModel.studentContext}</p>
             <p>Family lead: {family.parentContactName}</p>
@@ -172,40 +178,38 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
           <section id="posture" className="panel rounded-[2rem] p-6 md:p-7">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-4xl space-y-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-                  Current posture
-                </p>
+                <p className="ui-kicker">Current posture</p>
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="section-title text-4xl font-semibold">{viewModel.currentPostureHeadline}</h2>
-                  <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  <span className="ui-chip">
                     Student 360
                   </span>
                 </div>
-                <p className="max-w-3xl text-base leading-8 text-[var(--muted)]">{viewModel.currentPostureDetail}</p>
+                <p className="max-w-3xl text-base leading-8 text-[var(--foreground-soft)]">{viewModel.currentPostureDetail}</p>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-[1.5rem] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Current focus</p>
-                    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{viewModel.currentFocus[0]}</p>
+                  <div className="ui-subtle-card p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Current focus</p>
+                    <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">{viewModel.currentFocus[0]}</p>
                   </div>
-                  <div className="rounded-[1.5rem] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Biggest risk</p>
-                    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{viewModel.currentRisk}</p>
+                  <div className="ui-subtle-card p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Biggest risk</p>
+                    <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">{viewModel.currentRisk}</p>
                   </div>
-                  <div className="rounded-[1.5rem] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Next deadline</p>
-                    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{viewModel.nextDeadlineLabel}</p>
+                  <div className="ui-subtle-card p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Next deadline</p>
+                    <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">{viewModel.nextDeadlineLabel}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="w-full max-w-sm rounded-[1.75rem] bg-white/70 p-5 text-sm text-[var(--muted)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+              <div className="ui-subtle-card w-full max-w-sm p-5 text-sm text-[var(--foreground-soft)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                   Immediate next actions
                 </p>
                 <div className="mt-4 space-y-3">
                   {viewModel.currentFocus.slice(0, 3).map((action, index) => (
                     <div key={`${action}-${index}`} className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                         Priority {index + 1}
                       </p>
                       <p className="mt-2 leading-7">{action}</p>
@@ -221,21 +225,25 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               label="Current SAT"
               value={student.testingProfile?.currentSat ? String(student.testingProfile.currentSat) : "—"}
               helper={student.testingProfile?.currentAct ? `ACT ${student.testingProfile.currentAct}` : "Testing baseline"}
+              variant="internal"
             />
             <MetricCard
               label="Projected SAT"
               value={student.testingProfile?.projectedSat ? String(student.testingProfile.projectedSat) : "—"}
               helper={student.testingProfile?.projectedAct ? `Projected ACT ${student.testingProfile.projectedAct}` : "Working target"}
+              variant="internal"
             />
             <MetricCard
               label="School list"
               value={`${student.schoolTargets.length}`}
               helper={`Reach ${viewModel.schoolBucketCounts.reach} • Target ${viewModel.schoolBucketCounts.target} • Likely ${viewModel.schoolBucketCounts.likely}`}
+              variant="internal"
             />
             <MetricCard
               label="Open tasks"
               value={`${viewModel.taskCounts.total - viewModel.sortedTasks.filter((task) => computeTaskStatus(task) === "done").length}`}
               helper={`${viewModel.taskCounts.overdue} overdue • ${viewModel.taskCounts.parentVisibleOpen} parent-visible open`}
+              variant="internal"
             />
           </div>
 
@@ -243,25 +251,26 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
             <SectionCard
               eyebrow="Narrative"
               title="Summary and momentum"
-              description="The student’s current position comes first, with advisor context and next moves visible before any editing controls."
+              description="Current position first, editing controls second."
               icon={Sparkles}
+              variant="internal"
             >
-              <div className="space-y-4 text-sm leading-7 text-[var(--muted)]">
-                <div className="rounded-[1.5rem] bg-white/70 p-4">
+              <div className="space-y-4 text-sm leading-7 text-[var(--foreground-soft)]">
+                <div className="ui-subtle-card p-4">
                   <p className="font-semibold text-[var(--foreground)]">Current summary</p>
                   <p className="mt-2">
                     {viewModel.latestSummary?.parentVisibleSummary ?? "No current monthly summary has been logged yet."}
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Advisor lens</p>
+                  <div className="ui-subtle-card p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Advisor lens</p>
                     <p className="mt-3">
                       {viewModel.latestSummary?.internalSummaryNotes ?? "Add internal summary notes when strategist framing changes."}
                     </p>
                   </div>
-                  <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Reporting month</p>
+                  <div className="ui-subtle-card p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Reporting month</p>
                     <p className="mt-3">
                       {viewModel.latestSummary ? formatDisplayDate(viewModel.latestSummary.reportingMonth) : "No month logged yet"}
                     </p>
@@ -283,7 +292,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     type="date"
                     name="reportingMonth"
                     defaultValue={viewModel.latestSummary?.reportingMonth ?? student.lastUpdatedDate}
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <div className="grid gap-4 md:grid-cols-2">
                     <textarea
@@ -291,14 +300,14 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                       defaultValue={viewModel.latestSummary?.biggestWin ?? ""}
                       rows={4}
                       placeholder="Biggest win"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <textarea
                       name="biggestRisk"
                       defaultValue={viewModel.latestSummary?.biggestRisk ?? ""}
                       rows={4}
                       placeholder="Biggest risk"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                   </div>
                   <div className="grid gap-4 md:grid-cols-3">
@@ -308,7 +317,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                         name={`topNextAction${index}`}
                         defaultValue={viewModel.latestSummary?.topNextActions[index - 1] ?? ""}
                         placeholder={`Top next action ${index}`}
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                     ))}
                   </div>
@@ -317,19 +326,19 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     defaultValue={viewModel.latestSummary?.parentVisibleSummary ?? ""}
                     rows={3}
                     placeholder="Parent-visible summary"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <textarea
                     name="internalSummaryNotes"
                     defaultValue={viewModel.latestSummary?.internalSummaryNotes ?? ""}
                     rows={3}
                     placeholder="Internal summary notes"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save summary
                   </button>
@@ -340,37 +349,38 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
             <SectionCard
               eyebrow="Workbench"
               title="Testing and school-fit guidance"
-              description="Testing posture stays adjacent to the list recommendation so the current score range can shape the next advising move."
+              description="Testing posture sits beside the current list recommendation."
               icon={LineChart}
+              variant="internal"
             >
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Current baseline</p>
+                  <div className="ui-subtle-card p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Current baseline</p>
                     <p className="section-title mt-3 text-3xl font-semibold">
                       {student.testingProfile?.currentSat ?? "—"}
                     </p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">
+                    <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                       {student.testingProfile?.currentAct ? `ACT ${student.testingProfile.currentAct}` : "No ACT logged"}
                     </p>
                   </div>
-                  <div className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Projected ceiling</p>
+                  <div className="ui-subtle-card p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">Projected ceiling</p>
                     <p className="section-title mt-3 text-3xl font-semibold">
                       {student.testingProfile?.projectedSat ?? "—"}
                     </p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">
+                    <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                       {student.testingProfile?.projectedAct ? `Projected ACT ${student.testingProfile.projectedAct}` : "No ACT projection logged"}
                     </p>
                   </div>
                 </div>
-                <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm leading-7 text-[var(--muted)]">
+                <div className="ui-subtle-card p-4 text-sm leading-7 text-[var(--foreground-soft)]">
                   <p className="font-semibold text-[var(--foreground)]">Strategy note</p>
                   <p className="mt-2">
                     {student.testingProfile?.strategyNote ?? "No testing strategy note is logged yet."}
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] bg-[var(--background-soft)] p-4 text-sm leading-7 text-[var(--muted)]">
+                <div className="rounded-[1.5rem] bg-[var(--background-soft)] p-4 text-sm leading-7 text-[var(--foreground-soft)]">
                   {viewModel.schoolFitRecommendation}
                 </div>
               </div>
@@ -390,7 +400,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     name="currentSat"
                     defaultValue={student.testingProfile?.currentSat ?? ""}
                     placeholder="Current SAT"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     type="number"
@@ -398,7 +408,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     name="projectedSat"
                     defaultValue={student.testingProfile?.projectedSat ?? ""}
                     placeholder="Projected SAT"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     type="number"
@@ -406,7 +416,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     name="currentAct"
                     defaultValue={student.testingProfile?.currentAct ?? ""}
                     placeholder="Current ACT"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     type="number"
@@ -414,19 +424,19 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     name="projectedAct"
                     defaultValue={student.testingProfile?.projectedAct ?? ""}
                     placeholder="Projected ACT"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <textarea
                     name="strategyNote"
                     defaultValue={student.testingProfile?.strategyNote ?? ""}
                     rows={3}
                     placeholder="Testing strategy note"
-                    className="md:col-span-2 w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={`md:col-span-2 ${fieldClass}`}
                   />
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="md:col-span-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={`md:col-span-2 ${submitButtonClass}`}
                   >
                     Save testing profile
                   </button>
@@ -441,9 +451,10 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="Academic and tutoring"
               description="Latest academic posture stays readable at a glance before the update form."
               icon={BookMarked}
+              variant="internal"
             >
               {viewModel.latestAcademicUpdate ? (
-                <div className="space-y-3 rounded-[1.5rem] bg-white/70 p-4 text-sm leading-7 text-[var(--muted)]">
+                <div className="ui-subtle-card space-y-3 p-4 text-sm leading-7 text-[var(--foreground-soft)]">
                   <p>
                     <strong className="text-[var(--foreground)]">Priority:</strong>{" "}
                     {viewModel.latestAcademicUpdate.subjectPriority}
@@ -480,40 +491,40 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     type="date"
                     name="date"
                     defaultValue={viewModel.latestAcademicUpdate?.date ?? student.lastUpdatedDate}
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="subjectPriority"
                     defaultValue={viewModel.latestAcademicUpdate?.subjectPriority ?? ""}
                     placeholder="Subject priority"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="gradeOrPredictedTrend"
                     defaultValue={viewModel.latestAcademicUpdate?.gradeOrPredictedTrend ?? ""}
                     placeholder="Grade or predicted trend"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="tutoringStatus"
                     defaultValue={viewModel.latestAcademicUpdate?.tutoringStatus ?? ""}
                     placeholder="Tutoring status"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <textarea
                     name="tutorNoteSummary"
                     defaultValue={viewModel.latestAcademicUpdate?.tutorNoteSummary ?? ""}
                     rows={3}
                     placeholder="Tutor note summary"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="testPrepStatus"
                     defaultValue={viewModel.latestAcademicUpdate?.testPrepStatus ?? ""}
                     placeholder="Test prep status"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
-                  <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <label className={checkboxLabelClass}>
                     <input
                       type="checkbox"
                       name="parentVisible"
@@ -524,7 +535,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save academic update
                   </button>
@@ -537,9 +548,10 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="Profile and project progress"
               description="Project progress, evidence, and mentor signal remain readable before editing."
               icon={GraduationCap}
+              variant="internal"
             >
               {viewModel.latestProfileUpdate ? (
-                <div className="space-y-3 rounded-[1.5rem] bg-white/70 p-4 text-sm leading-7 text-[var(--muted)]">
+                <div className="ui-subtle-card space-y-3 p-4 text-sm leading-7 text-[var(--foreground-soft)]">
                   <p>
                     <strong className="text-[var(--foreground)]">Project:</strong>{" "}
                     {viewModel.latestProfileUpdate.projectName}
@@ -572,34 +584,34 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     type="date"
                     name="date"
                     defaultValue={viewModel.latestProfileUpdate?.date ?? student.lastUpdatedDate}
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="projectName"
                     defaultValue={viewModel.latestProfileUpdate?.projectName ?? ""}
                     placeholder="Project name"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="milestoneStatus"
                     defaultValue={viewModel.latestProfileUpdate?.milestoneStatus ?? ""}
                     placeholder="Milestone status"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="evidenceAdded"
                     defaultValue={viewModel.latestProfileUpdate?.evidenceAdded ?? ""}
                     placeholder="Evidence added"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <textarea
                     name="mentorNoteSummary"
                     defaultValue={viewModel.latestProfileUpdate?.mentorNoteSummary ?? ""}
                     rows={3}
                     placeholder="Mentor note summary"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
-                  <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <label className={checkboxLabelClass}>
                     <input
                       type="checkbox"
                       name="parentVisible"
@@ -610,7 +622,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save profile update
                   </button>
@@ -625,16 +637,17 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="Activities and leadership"
               description="Leadership evidence stays visible as a strategy readout instead of a list buried below forms."
               icon={Activity}
+              variant="internal"
             >
               <div className="space-y-3">
                 {viewModel.sortedActivities.length === 0 ? (
                   <SectionEmpty copy="No activities have been logged yet." />
                 ) : (
                   viewModel.sortedActivities.map((activity) => (
-                    <div key={activity.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
+                    <div key={activity.id} className="ui-subtle-card p-4">
                       <p className="font-semibold">{activity.activityName}</p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">{activity.role}</p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{activity.impactSummary}</p>
+                      <p className="mt-1 text-sm text-[var(--foreground-soft)]">{activity.role}</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{activity.impactSummary}</p>
                     </div>
                   ))
                 )}
@@ -652,23 +665,23 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="activityName"
                     placeholder="Activity name"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="role"
                     placeholder="Role"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <textarea
                     name="impactSummary"
                     rows={3}
                     placeholder="Impact summary"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save activity
                   </button>
@@ -681,16 +694,17 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="Competitions and awards"
               description="Competitive signal remains adjacent to activities so the full profile can be scanned in one pass."
               icon={Trophy}
+              variant="internal"
             >
               <div className="space-y-3">
                 {viewModel.sortedCompetitions.length === 0 ? (
                   <SectionEmpty copy="No competitions or awards have been logged yet." />
                 ) : (
                   viewModel.sortedCompetitions.map((item) => (
-                    <div key={item.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
+                    <div key={item.id} className="ui-subtle-card p-4">
                       <p className="font-semibold">{item.competitionName}</p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">{item.yearLabel}</p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.result}</p>
+                      <p className="mt-1 text-sm text-[var(--foreground-soft)]">{item.yearLabel}</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{item.result}</p>
                     </div>
                   ))
                 )}
@@ -708,23 +722,23 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="competitionName"
                     placeholder="Competition or award name"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="yearLabel"
                     placeholder="Year"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <textarea
                     name="result"
                     rows={3}
                     placeholder="Result"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save competition
                   </button>
@@ -739,23 +753,24 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="School target list"
               description="The current school mix stays readable in one place so bucket balance and fit notes are easy to scan."
               icon={School}
+              variant="internal"
             >
               <div className="grid gap-4 lg:grid-cols-3">
                 {(["reach", "target", "likely"] as const).map((bucket) => (
-                  <div key={bucket} className="space-y-3 rounded-[1.5rem] bg-white/70 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                  <div key={bucket} className="ui-subtle-card space-y-3 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                       {bucket}
                     </p>
                     {viewModel.sortedSchoolTargets.filter((school) => school.bucket === bucket).length === 0 ? (
-                      <p className="text-sm text-[var(--muted)]">No schools in this bucket yet.</p>
+                      <p className="text-sm text-[var(--foreground-soft)]">No schools in this bucket yet.</p>
                     ) : (
                       viewModel.sortedSchoolTargets
                         .filter((school) => school.bucket === bucket)
                         .map((school) => (
                           <div key={school.id} className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
                             <p className="font-semibold">{school.schoolName}</p>
-                            <p className="mt-1 text-sm text-[var(--muted)]">{school.country}</p>
-                            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{school.fitNote}</p>
+                            <p className="mt-1 text-sm text-[var(--foreground-soft)]">{school.country}</p>
+                            <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{school.fitNote}</p>
                           </div>
                         ))
                     )}
@@ -775,18 +790,18 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="schoolName"
                     placeholder="School name"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <div className="grid gap-4 md:grid-cols-2">
                     <input
                       name="country"
                       placeholder="Country"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <select
                       name="bucket"
                       defaultValue="target"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     >
                       <option value="reach">Reach</option>
                       <option value="target">Target</option>
@@ -797,12 +812,12 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     name="fitNote"
                     rows={3}
                     placeholder="Fit note"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save school target
                   </button>
@@ -817,29 +832,30 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="Tasks and deadlines"
               description="Open work stays student-scoped here, with the next deadlines and parent-facing visibility clear at a glance."
               icon={CalendarClock}
+              variant="internal"
             >
               <div className="space-y-3">
                 {viewModel.sortedTasks.length === 0 ? (
                   <SectionEmpty copy="No student-scoped tasks have been logged yet." />
                 ) : (
                   viewModel.sortedTasks.map((task) => (
-                    <div key={task.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
+                    <div key={task.id} className="ui-subtle-card p-4">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-semibold">{task.itemName}</p>
-                            <span className="rounded-full bg-[var(--background-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                            <span className="ui-chip">
                               {getRecordVisibilityTone(task)}
                             </span>
                           </div>
-                          <p className="mt-1 text-sm text-[var(--muted)]">
+                          <p className="mt-1 text-sm text-[var(--foreground-soft)]">
                             {task.category} • {task.owner}
                           </p>
                           {task.dependencyNotes ? (
-                            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{task.dependencyNotes}</p>
+                            <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{task.dependencyNotes}</p>
                           ) : null}
                         </div>
-                        <div className="space-y-2 text-sm text-[var(--muted)] md:text-right">
+                        <div className="space-y-2 text-sm text-[var(--foreground-soft)] md:text-right">
                           <StatusBadge status={computeTaskStatus(task)} kind="task" />
                           <p>{formatDisplayDate(task.dueDate)}</p>
                         </div>
@@ -861,12 +877,12 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="itemName"
                     placeholder="Task name"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <select
                     name="category"
                     defaultValue="application"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   >
                     <option value="application">Application</option>
                     <option value="testing">Testing</option>
@@ -877,18 +893,18 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="owner"
                     placeholder="Owner"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     type="date"
                     name="dueDate"
                     defaultValue={student.lastUpdatedDate}
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <select
                     name="status"
                     defaultValue="not_started"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   >
                     <option value="not_started">Not started</option>
                     <option value="in_progress">In progress</option>
@@ -899,16 +915,16 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="dependencyNotes"
                     placeholder="Dependency notes"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
-                  <label className="md:col-span-2 flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <label className={`md:col-span-2 ${checkboxLabelClass}`}>
                     <input type="checkbox" name="parentVisible" />
                     Parent visible
                   </label>
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="md:col-span-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={`md:col-span-2 ${submitButtonClass}`}
                   >
                     Save task
                   </button>
@@ -922,24 +938,25 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                 title="Decisions"
                 description="Student-scoped decisions remain separate from family-wide coordination."
                 icon={Flag}
+                variant="internal"
               >
                 <div className="space-y-3">
                   {viewModel.sortedDecisions.length === 0 ? (
                     <SectionEmpty copy="No student decisions have been logged yet." />
                   ) : (
                     viewModel.sortedDecisions.map((decision) => (
-                      <div key={decision.id} className="rounded-[1.5rem] bg-white/70 p-4">
+                      <div key={decision.id} className="ui-subtle-card p-4">
                         <div className="flex flex-wrap items-center gap-3">
                           <p className="font-semibold">{decision.decisionType}</p>
                           {decision.pendingFamilyInput ? <StatusBadge status="yellow" /> : null}
-                          <span className="rounded-full bg-[var(--background-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                          <span className="ui-chip">
                             {getRecordVisibilityTone(decision)}
                           </span>
                         </div>
-                        <p className="mt-2 text-sm text-[var(--muted)]">
+                        <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                           {formatDisplayDate(decision.date)} • {decision.owner} • {decision.status}
                         </p>
-                        <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{decision.summary}</p>
+                        <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{decision.summary}</p>
                       </div>
                     ))
                   )}
@@ -959,47 +976,47 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                         type="date"
                         name="date"
                         defaultValue={student.lastUpdatedDate}
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                       <input
                         name="decisionType"
                         placeholder="Decision type"
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                     </div>
                     <textarea
                       name="summary"
                       rows={3}
                       placeholder="Decision summary"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <div className="grid gap-4 md:grid-cols-2">
                       <input
                         name="owner"
                         placeholder="Owner"
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                       <select
                         name="status"
                         defaultValue="pending"
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       >
                         <option value="pending">Pending</option>
                         <option value="resolved">Resolved</option>
                       </select>
                     </div>
-                    <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                    <label className={checkboxLabelClass}>
                       <input type="checkbox" name="pendingFamilyInput" />
                       Pending family input
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                    <label className={checkboxLabelClass}>
                       <input type="checkbox" name="parentVisible" defaultChecked />
                       Parent visible
                     </label>
                     <button
                       type="submit"
                       disabled={!writesEnabled}
-                      className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className={submitButtonClass}
                     >
                       Save decision
                     </button>
@@ -1012,18 +1029,19 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                 title="Prior summaries"
                 description="Past monthly summaries stay compact and chronological so history supports current posture instead of competing with it."
                 icon={Sparkles}
+                variant="internal"
               >
                 <div className="space-y-3">
                   {viewModel.summaryHistory.length === 0 ? (
                     <SectionEmpty copy="No prior summaries have been logged yet." />
                   ) : (
                     viewModel.summaryHistory.map((summary) => (
-                      <div key={summary.id} className="rounded-[1.5rem] bg-white/70 p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                      <div key={summary.id} className="ui-subtle-card p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                           {formatDisplayDate(summary.reportingMonth)}
                         </p>
                         <p className="mt-2 font-semibold">{summary.biggestWin}</p>
-                        <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{summary.biggestRisk}</p>
+                        <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{summary.biggestRisk}</p>
                       </div>
                     ))
                   )}
@@ -1038,23 +1056,24 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="Notes"
               description="Notes retain visibility context so internal-only records never get confused with parent-safe ones."
               icon={MessageSquare}
+              variant="internal"
             >
               <div className="space-y-3">
                 {viewModel.sortedNotes.length === 0 ? (
                   <SectionEmpty copy="No notes have been logged yet." />
                 ) : (
                   viewModel.sortedNotes.map((note) => (
-                    <div key={note.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
+                    <div key={note.id} className="ui-subtle-card p-4">
                       <div className="flex flex-wrap items-center gap-3">
                         <p className="font-semibold">{note.summary}</p>
-                        <span className="rounded-full bg-[var(--background-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                        <span className="ui-chip">
                           {getRecordVisibilityTone(note)}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm text-[var(--muted)]">
+                      <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                         {formatDisplayDate(note.date)} • {getStringLabel(note.authorRole)} • {getStringLabel(note.noteType)}
                       </p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{note.body}</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{note.body}</p>
                     </div>
                   ))
                 )}
@@ -1074,12 +1093,12 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                       type="date"
                       name="date"
                       defaultValue={student.lastUpdatedDate}
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <select
                       name="authorRole"
                       defaultValue="strategist"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     >
                       <option value="strategist">Strategist</option>
                       <option value="ops">Ops</option>
@@ -1091,12 +1110,12 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     <input
                       name="noteType"
                       placeholder="Note type"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <select
                       name="visibility"
                       defaultValue="internal"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     >
                       <option value="internal">Internal</option>
                       <option value="parent">Parent</option>
@@ -1105,18 +1124,18 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="summary"
                     placeholder="Note summary"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <textarea
                     name="body"
                     rows={4}
                     placeholder="Detailed note"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save note
                   </button>
@@ -1129,6 +1148,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
               title="Artifacts"
               description="Student-owned artifacts stay separate from family-wide resources, with family resources shown only as context."
               icon={Files}
+              variant="internal"
             >
               <div className="space-y-3">
                 {viewModel.sortedArtifacts.length === 0 ? (
@@ -1140,15 +1160,15 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                       href={artifact.linkUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="block rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4 transition hover:bg-white"
+                      className="ui-subtle-card block p-4 transition hover:bg-white"
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <p className="font-semibold">{artifact.artifactName}</p>
-                        <span className="rounded-full bg-[var(--background-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                        <span className="ui-chip">
                           {getRecordVisibilityTone(artifact)}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm text-[var(--muted)]">
+                      <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                         {getStringLabel(artifact.artifactType)} • {artifact.owner} • {formatDisplayDate(artifact.uploadDate)}
                       </p>
                     </a>
@@ -1169,12 +1189,12 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                     <input
                       name="artifactName"
                       placeholder="Artifact name"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <select
                       name="artifactType"
                       defaultValue="drive_folder"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     >
                       <option value="drive_folder">Drive folder</option>
                       <option value="doc">Doc</option>
@@ -1186,29 +1206,29 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                   <input
                     name="linkUrl"
                     placeholder="https://..."
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <div className="grid gap-4 md:grid-cols-2">
                     <input
                       type="date"
                       name="uploadDate"
                       defaultValue={student.lastUpdatedDate}
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <input
                       name="owner"
                       placeholder="Owner"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <label className={checkboxLabelClass}>
                     <input type="checkbox" name="parentVisible" />
                     Parent visible
                   </label>
                   <button
                     type="submit"
                     disabled={!writesEnabled}
-                    className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={submitButtonClass}
                   >
                     Save artifact
                   </button>
@@ -1226,48 +1246,49 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                 title="Shared household context"
                 description="Family-wide items stay visible at the end of the page so household constraints are still in view without taking over the student workspace."
                 icon={Users}
+                variant="internal"
               >
                 <div className="grid gap-4 lg:grid-cols-3">
                   <div className="space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                       Family decisions
                     </p>
                     {viewModel.familyContext.decisions.length === 0 ? (
-                      <p className="rounded-[1.25rem] bg-white/70 px-4 py-3 text-sm text-[var(--muted)]">
+                      <p className="ui-subtle-card px-4 py-3 text-sm text-[var(--foreground-soft)]">
                         No family-wide decisions logged.
                       </p>
                     ) : (
                       viewModel.familyContext.decisions.map((decision) => (
-                        <div key={decision.id} className="rounded-[1.25rem] bg-white/70 px-4 py-3">
+                        <div key={decision.id} className="ui-subtle-card px-4 py-3">
                           <p className="font-semibold">{decision.decisionType}</p>
-                          <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{decision.summary}</p>
+                          <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{decision.summary}</p>
                         </div>
                       ))
                     )}
                   </div>
                   <div className="space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                       Family notes
                     </p>
                     {viewModel.familyContext.notes.length === 0 ? (
-                      <p className="rounded-[1.25rem] bg-white/70 px-4 py-3 text-sm text-[var(--muted)]">
+                      <p className="ui-subtle-card px-4 py-3 text-sm text-[var(--foreground-soft)]">
                         No family-wide notes logged.
                       </p>
                     ) : (
                       viewModel.familyContext.notes.map((note) => (
-                        <div key={note.id} className="rounded-[1.25rem] bg-white/70 px-4 py-3">
+                        <div key={note.id} className="ui-subtle-card px-4 py-3">
                           <p className="font-semibold">{note.summary}</p>
-                          <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{note.body}</p>
+                          <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{note.body}</p>
                         </div>
                       ))
                     )}
                   </div>
                   <div className="space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                       Shared resources
                     </p>
                     {viewModel.familyContext.artifacts.length === 0 ? (
-                      <p className="rounded-[1.25rem] bg-white/70 px-4 py-3 text-sm text-[var(--muted)]">
+                      <p className="ui-subtle-card px-4 py-3 text-sm text-[var(--foreground-soft)]">
                         No family-wide resources logged.
                       </p>
                     ) : (
@@ -1277,10 +1298,10 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                           href={artifact.linkUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="block rounded-[1.25rem] bg-white/70 px-4 py-3 transition hover:bg-white"
+                          className="ui-subtle-card block px-4 py-3 transition hover:bg-white"
                         >
                           <p className="font-semibold">{artifact.artifactName}</p>
-                          <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{artifact.owner}</p>
+                          <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{artifact.owner}</p>
                         </a>
                       ))
                     )}
@@ -1289,7 +1310,7 @@ export function Student360View({ actorRole, portfolio, message, error }: Student
                 <div className="mt-5">
                   <Link
                     href={`/families/${family.slug}`}
-                    className="inline-flex rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold"
+                    className="ui-button-secondary"
                   >
                     Open family workspace
                   </Link>

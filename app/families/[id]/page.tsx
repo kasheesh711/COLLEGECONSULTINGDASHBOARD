@@ -45,6 +45,9 @@ import type { FamilyWorkspace, TaskItem } from "@/lib/domain/types";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const fieldClass = "ui-field w-full";
+const submitButtonClass = "ui-button-primary disabled:cursor-not-allowed disabled:opacity-60";
+const checkboxLabelClass = "flex items-center gap-2 text-sm text-[var(--foreground-soft)]";
 
 function getStringValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -142,31 +145,27 @@ export default async function FamilyDetailPage({
         title={family.familyLabel}
         description={
           <>
-            Parent lead: {family.parentContactName}. Ownership: {family.strategistOwnerName} /{" "}
-            {family.opsOwnerName}. Current mode: {formatRoleLabel(actor.activeRole)}. This cockpit
-            keeps family-wide coordination readable before any composer opens.
+            Parent lead {family.parentContactName}. {formatRoleLabel(actor.activeRole)} mode with{" "}
+            {family.strategistOwnerName} / {family.opsOwnerName} ownership.
           </>
         }
         actions={
-          <Link
-            href={`/students/new?family=${family.slug}`}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white"
-          >
+          <Link href={`/students/new?family=${family.slug}`} className="ui-button-primary">
             <Plus className="h-4 w-4" />
             Add student
           </Link>
         }
       >
-        <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+        <span className="ui-chip" data-tone="internal">
           {getStudentCountsLabel(family)}
         </span>
-        <span className="rounded-full bg-[var(--danger-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--danger)]">
+        <span className="ui-chip" data-tone="urgent">
           {overdueTasks.length} overdue items
         </span>
-        <span className="rounded-full bg-[var(--warn-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--warn)]">
+        <span className="ui-chip" data-tone="accent">
           {pendingItems.length} pending family-input items
         </span>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+        <span className="ui-chip" data-tone="muted">
           Updated {formatDisplayDate(family.lastUpdatedDate)}
         </span>
       </InternalSurfaceHero>
@@ -181,28 +180,28 @@ export default async function FamilyDetailPage({
         <SectionCard
           eyebrow="Attention now"
           title="Pending family input and overdue work"
-          description="This module keeps the immediate family coordination blockers above the deeper case sections."
+          description="Immediate blockers first."
           icon={CircleAlert}
           tone="urgent"
         >
           <div className="grid gap-4 xl:grid-cols-2">
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                 Pending family input
               </p>
               {pendingItems.length === 0 ? (
-                <div className="rounded-[1.5rem] bg-white/80 p-4 text-sm text-[var(--muted)]">
+                <div className="ui-subtle-card p-4 text-sm text-[var(--foreground-soft)]">
                   No family-input items are currently pending.
                 </div>
               ) : (
                 pendingItems.map((item) => (
-                  <div key={item.id} className="rounded-[1.5rem] bg-white/85 p-4">
+                  <div key={item.id} className="ui-subtle-card p-4">
                     <div className="flex flex-wrap items-center gap-3">
                       <p className="font-semibold">{item.decisionType}</p>
                       <StatusBadge status="yellow" />
                     </div>
-                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.summary}</p>
-                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{item.summary}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                       {formatDisplayDate(item.date)} • {item.owner}
                     </p>
                   </div>
@@ -211,25 +210,28 @@ export default async function FamilyDetailPage({
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-blue)]">
                 Overdue and next due
               </p>
               {openTasks.length === 0 ? (
-                <div className="rounded-[1.5rem] bg-white/80 p-4 text-sm text-[var(--muted)]">
+                <div className="ui-subtle-card p-4 text-sm text-[var(--foreground-soft)]">
                   No open family or student tasks are currently logged.
                 </div>
               ) : (
                 openTasks.slice(0, 5).map(({ label, task, studentSlug }) => (
-                  <div key={`${label}-${task.id}`} className="rounded-[1.5rem] bg-white/85 p-4">
+                  <div key={`${label}-${task.id}`} className="ui-subtle-card p-4">
                     <div className="flex flex-wrap items-center gap-3">
                       <p className="font-semibold">{task.itemName}</p>
                       <StatusBadge status={computeTaskStatus(task)} kind="task" />
                     </div>
-                    <p className="mt-2 text-sm text-[var(--muted)]">
+                    <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                       {label} • {task.owner} • {formatDisplayDate(task.dueDate)}
                     </p>
                     {studentSlug ? (
-                      <Link href={`/students/${studentSlug}`} className="mt-3 inline-block text-sm font-semibold text-[var(--accent)]">
+                      <Link
+                        href={`/students/${studentSlug}`}
+                        className="mt-3 inline-block text-sm font-semibold text-[var(--brand-blue)]"
+                      >
                         Open student 360
                       </Link>
                     ) : null}
@@ -238,7 +240,7 @@ export default async function FamilyDetailPage({
               )}
             </div>
           </div>
-          <details className="mt-5 rounded-[1.5rem] bg-white/75 p-4">
+          <details className="mt-5 rounded-[1.5rem] border border-[var(--border)] bg-white/78 p-4">
             <summary className="cursor-pointer font-semibold">Open family-level decision composer</summary>
             <form action={saveDecisionAction} className="mt-4 space-y-4">
               <input type="hidden" name="familyId" value={family.id} />
@@ -249,47 +251,47 @@ export default async function FamilyDetailPage({
                   type="date"
                   name="date"
                   defaultValue={family.lastUpdatedDate}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 />
                 <input
                   name="decisionType"
                   placeholder="Decision type"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 />
               </div>
               <textarea
                 name="summary"
                 rows={3}
                 placeholder="Decision summary"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                className={fieldClass}
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <input
                   name="owner"
                   placeholder="Owner"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 />
                 <select
                   name="status"
                   defaultValue="pending"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 >
                   <option value="pending">Pending</option>
                   <option value="resolved">Resolved</option>
                 </select>
               </div>
-              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+              <label className={checkboxLabelClass}>
                 <input type="checkbox" name="pendingFamilyInput" defaultChecked />
                 Pending family input
               </label>
-              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+              <label className={checkboxLabelClass}>
                 <input type="checkbox" name="parentVisible" defaultChecked />
                 Parent visible
               </label>
               <button
                 type="submit"
                 disabled={!isSupabaseConfigured()}
-                className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="ui-button-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Save family decision
               </button>
@@ -302,7 +304,7 @@ export default async function FamilyDetailPage({
         <SectionCard
           eyebrow="Students"
           title="Student roster"
-          description="Each student keeps their own posture, tasks, testing, and school list inside the portfolio workspace."
+          description="Each student keeps a separate strategy workspace."
           icon={Users}
         >
         <div className="grid gap-4 xl:grid-cols-2">
@@ -312,7 +314,7 @@ export default async function FamilyDetailPage({
             return (
               <article
                 key={student.id}
-                className="rounded-[1.75rem] border border-[var(--border)] bg-white/75 p-5 shadow-sm"
+                className="rounded-[1.75rem] border border-[var(--border)] bg-white/82 p-5 shadow-[0_14px_30px_rgba(21,40,61,0.05)]"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3">
@@ -320,10 +322,10 @@ export default async function FamilyDetailPage({
                       <h2 className="text-2xl font-semibold">{student.studentName}</h2>
                       <StatusBadge status={student.overallStatus} />
                     </div>
-                    <p className="text-sm text-[var(--muted)]">
+                    <p className="text-sm text-[var(--foreground-soft)]">
                       {student.gradeLevel} • {student.currentPhase} • {student.tier}
                     </p>
-                    <p className="text-sm text-[var(--muted)]">
+                    <p className="text-sm text-[var(--foreground-soft)]">
                       {student.pathway.split("_").join(" ")} •{" "}
                       {student.testingProfile?.currentSat
                         ? `SAT ${student.testingProfile.currentSat}`
@@ -331,19 +333,16 @@ export default async function FamilyDetailPage({
                           ? `ACT ${student.testingProfile.currentAct}`
                           : "No testing baseline yet"}
                     </p>
-                    <p className="text-sm leading-7 text-[var(--muted)]">
+                    <p className="text-sm leading-7 text-[var(--foreground-soft)]">
                       {latestSummary?.biggestRisk ?? student.statusReason}
                     </p>
                   </div>
-                  <div className="min-w-[220px] space-y-3 rounded-[1.5rem] bg-[var(--background-soft)] p-4 text-sm text-[var(--muted)] lg:text-right">
+                  <div className="min-w-[220px] space-y-3 rounded-[1.5rem] border border-[var(--border)] bg-[var(--background-soft)] p-4 text-sm text-[var(--foreground-soft)] lg:text-right">
                     <p>Tasks: {student.tasks.length}</p>
                     <p>Decisions: {student.decisionLogItems.length}</p>
                     <p>Schools: {student.schoolTargets.length}</p>
                     <p>Updated: {formatDisplayDate(student.lastUpdatedDate)}</p>
-                    <Link
-                      href={`/students/${student.slug}`}
-                      className="inline-flex rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white"
-                    >
+                    <Link href={`/students/${student.slug}`} className="ui-button-primary px-4 py-2 text-[0.66rem]">
                       Open student 360
                     </Link>
                   </div>
@@ -359,54 +358,55 @@ export default async function FamilyDetailPage({
         <SectionCard
           eyebrow="College strategy"
           title="College research and school list workbench"
-          description="Internal-only US college planning stays attached to the family workspace while the deeper search surface lives in the standalone explorer."
+          description="Internal-only college planning stays close to the family cockpit."
           icon={School}
           tone="muted"
+          variant="data"
         >
         {!primaryUsCollegeStudent ? (
-          <div className="rounded-[1.5rem] bg-white/70 p-5 text-sm leading-7 text-[var(--muted)]">
+          <div className="rounded-[1.5rem] bg-white/82 p-5 text-sm leading-7 text-[var(--foreground-soft)]">
             College Scorecard workbench is only enabled for US college applicants in v1.
           </div>
         ) : (
           <div className="space-y-6">
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[1.75rem] bg-white/70 p-5">
+              <div className="rounded-[1.75rem] bg-white/82 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                       Primary applicant
                     </p>
                     <p className="mt-2 text-xl font-semibold">{primaryUsCollegeStudent.studentName}</p>
-                    <p className="text-sm text-[var(--muted)]">
+                    <p className="text-sm text-[var(--foreground-soft)]">
                       {primaryUsCollegeStudent.gradeLevel} • {primaryUsCollegeStudent.currentPhase}
                     </p>
                   </div>
                   <Link
                     href={`/colleges?family=${family.slug}`}
-                    className="inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+                    className="ui-button-primary px-4 py-2"
                   >
                     Open explorer
                   </Link>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Current SAT</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">Current SAT</p>
                     <p className="mt-2 font-semibold">
                       {strategyProfile?.currentSat ?? primaryUsCollegeStudent.testingProfile?.currentSat ?? "—"}
                     </p>
                   </div>
                   <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Projected SAT</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">Projected SAT</p>
                     <p className="mt-2 font-semibold">
                       {strategyProfile?.projectedSat ?? primaryUsCollegeStudent.testingProfile?.projectedSat ?? "—"}
                     </p>
                   </div>
                   <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Current list</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">Current list</p>
                     <p className="mt-2 font-semibold">{currentCollegeList?.listName ?? "No list yet"}</p>
                   </div>
                   <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Intended majors</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">Intended majors</p>
                     <p className="mt-2 font-semibold">
                       {strategyProfile?.intendedMajorLabels.join(" • ") || "Not set yet"}
                     </p>
@@ -433,7 +433,7 @@ export default async function FamilyDetailPage({
                           strategyProfile?.currentSat ?? primaryUsCollegeStudent.testingProfile?.currentSat ?? ""
                         }
                         placeholder="Current SAT"
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                       <input
                         type="number"
@@ -446,7 +446,7 @@ export default async function FamilyDetailPage({
                           ""
                         }
                         placeholder="Projected SAT"
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                       <input
                         type="number"
@@ -455,7 +455,7 @@ export default async function FamilyDetailPage({
                         name="currentAct"
                         defaultValue={strategyProfile?.currentAct ?? primaryUsCollegeStudent.testingProfile?.currentAct ?? ""}
                         placeholder="Current ACT"
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                       <input
                         type="number"
@@ -466,16 +466,16 @@ export default async function FamilyDetailPage({
                           strategyProfile?.projectedAct ?? primaryUsCollegeStudent.testingProfile?.projectedAct ?? ""
                         }
                         placeholder="Projected ACT"
-                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={fieldClass}
                       />
                     </div>
                     <label className="block text-sm">
-                      <span className="mb-2 block font-semibold text-[var(--muted)]">Intended majors</span>
+                      <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Intended majors</span>
                       <select
                         name="intendedMajorCodes"
                         defaultValue={strategyProfile?.intendedMajorCodes ?? []}
                         multiple
-                        className="min-h-44 w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                        className={`min-h-44 ${fieldClass}`}
                       >
                         {cip4Options.map((option) => (
                           <option key={option.code} value={option.code}>
@@ -491,12 +491,12 @@ export default async function FamilyDetailPage({
                         strategyProfile?.strategyNote ?? primaryUsCollegeStudent.testingProfile?.strategyNote ?? ""
                       }
                       placeholder="Counselor strategy note"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
                     <button
                       type="submit"
                       disabled={!collegeWritesEnabled}
-                      className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className={submitButtonClass}
                     >
                       Save college strategy
                     </button>
@@ -504,10 +504,10 @@ export default async function FamilyDetailPage({
                 </details>
               </div>
 
-              <div className="rounded-[1.75rem] bg-white/70 p-5">
+              <div className="rounded-[1.75rem] bg-white/82 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                       Named lists
                     </p>
                     <p className="mt-2 text-xl font-semibold">
@@ -517,7 +517,7 @@ export default async function FamilyDetailPage({
                 </div>
                 <div className="mt-4 space-y-3">
                   {family.collegeLists.length === 0 ? (
-                    <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3 text-sm text-[var(--muted)]">
+                    <div className="rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3 text-sm text-[var(--foreground-soft)]">
                       No family college list has been created yet.
                     </div>
                   ) : (
@@ -528,7 +528,7 @@ export default async function FamilyDetailPage({
                       >
                         <div>
                           <p className="font-semibold">{list.listName}</p>
-                          <p className="text-sm text-[var(--muted)]">{list.items.length} schools</p>
+                          <p className="text-sm text-[var(--foreground-soft)]">{list.items.length} schools</p>
                         </div>
                         {list.isCurrent ? (
                           <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
@@ -543,7 +543,7 @@ export default async function FamilyDetailPage({
                             <button
                               type="submit"
                               disabled={!collegeWritesEnabled}
-                              className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-60"
+                              className="ui-button-secondary px-3 py-1.5 text-[0.66rem] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Set current
                             </button>
@@ -562,16 +562,16 @@ export default async function FamilyDetailPage({
                     <input
                       name="listName"
                       placeholder="List name"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                      className={fieldClass}
                     />
-                    <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                    <label className={checkboxLabelClass}>
                       <input type="checkbox" name="setCurrent" defaultChecked />
                       Make this the current list
                     </label>
                     <button
                       type="submit"
                       disabled={!collegeWritesEnabled}
-                      className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className={submitButtonClass}
                     >
                       Create list
                     </button>
@@ -591,13 +591,13 @@ export default async function FamilyDetailPage({
                     <div key={column.key} className="rounded-[1.75rem] bg-[var(--background-soft)] p-4">
                       <div className="mb-4 flex items-center justify-between">
                         <h3 className="font-semibold">{column.title}</h3>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                        <span className="ui-chip">
                           {column.items.length}
                         </span>
                       </div>
                       <div className="space-y-3">
                         {column.items.length === 0 ? (
-                          <div className="rounded-[1.25rem] bg-white/70 p-4 text-sm text-[var(--muted)]">
+                          <div className="rounded-[1.25rem] bg-white/82 p-4 text-sm text-[var(--foreground-soft)]">
                             No schools in this bucket yet.
                           </div>
                         ) : (
@@ -626,7 +626,7 @@ export default async function FamilyDetailPage({
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
                                     <p className="font-semibold">{item.schoolName}</p>
-                                    <p className="text-sm text-[var(--muted)]">
+                                    <p className="text-sm text-[var(--foreground-soft)]">
                                       {item.city}, {item.state}
                                     </p>
                                   </div>
@@ -634,7 +634,7 @@ export default async function FamilyDetailPage({
                                     {item.fitScore}
                                   </span>
                                 </div>
-                                <div className="mt-3 grid gap-2 text-sm text-[var(--muted)]">
+                                <div className="mt-3 grid gap-2 text-sm text-[var(--foreground-soft)]">
                                   <p>Admission: {formatCollegePercent(item.admissionRate)}</p>
                                   <p>SAT avg: {item.satAverage ?? "—"}</p>
                                   <p>Net price: {formatCollegeMoney(item.averageNetPrice)}</p>
@@ -644,18 +644,18 @@ export default async function FamilyDetailPage({
                                     {item.matchedProgramLabels.map((program) => (
                                       <span
                                         key={`${item.id}-${program}`}
-                                        className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]"
+                                        className="ui-chip"
                                       >
                                         {program}
                                       </span>
                                     ))}
                                   </div>
                                 ) : null}
-                                <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                                <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">
                                   {item.fitRationale}
                                 </p>
                                 {item.counselorNote ? (
-                                  <p className="mt-3 rounded-[1rem] bg-[var(--background-soft)] px-3 py-2 text-sm text-[var(--muted)]">
+                                  <p className="mt-3 rounded-[1rem] bg-[var(--background-soft)] px-3 py-2 text-sm text-[var(--foreground-soft)]">
                                     {item.counselorNote}
                                   </p>
                                 ) : null}
@@ -686,11 +686,11 @@ export default async function FamilyDetailPage({
                                     <input type="hidden" name="fitRationale" value={item.fitRationale} />
                                     <input type="hidden" name="sortOrder" value={item.sortOrder} />
                                     <label className="block text-sm">
-                                      <span className="mb-2 block font-semibold text-[var(--muted)]">Bucket</span>
+                                      <span className="mb-2 block font-semibold text-[var(--foreground-soft)]">Bucket</span>
                                       <select
                                         name="bucket"
                                         defaultValue={item.bucket}
-                                        className="w-full rounded-2xl border border-[var(--border)] bg-white px-3 py-2 outline-none"
+                                        className={fieldClass}
                                       >
                                         <option value="reach">Reach</option>
                                         <option value="target">Target</option>
@@ -703,12 +703,12 @@ export default async function FamilyDetailPage({
                                       rows={3}
                                       defaultValue={item.counselorNote ?? ""}
                                       placeholder="Counselor note"
-                                      className="w-full rounded-2xl border border-[var(--border)] bg-white px-3 py-2 outline-none"
+                                      className={fieldClass}
                                     />
                                     <button
                                       type="submit"
                                       disabled={!collegeWritesEnabled}
-                                      className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                      className="ui-button-primary px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                       Save item
                                     </button>
@@ -780,12 +780,12 @@ export default async function FamilyDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] bg-white/70 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+              <div className="rounded-[1.75rem] bg-white/82 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                   Quick add drawer
                 </p>
                 <h3 className="mt-2 text-xl font-semibold">Suggested research hits</h3>
-                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">
                   This compact drawer uses the same College Scorecard search helper as the standalone explorer.
                 </p>
                 {!isCollegeScorecardConfigured() ? (
@@ -793,7 +793,7 @@ export default async function FamilyDetailPage({
                     Add `COLLEGE_SCORECARD_API_KEY` to browse live college results here.
                   </p>
                 ) : currentCollegeList == null ? (
-                  <p className="mt-4 rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3 text-sm text-[var(--muted)]">
+                  <p className="mt-4 rounded-[1.25rem] bg-[var(--background-soft)] px-4 py-3 text-sm text-[var(--foreground-soft)]">
                     Create a named list first, then add schools from the explorer or this drawer.
                   </p>
                 ) : (
@@ -803,10 +803,10 @@ export default async function FamilyDetailPage({
                       return (
                         <div key={school.scorecardSchoolId} className="rounded-[1.25rem] border border-[var(--border)] bg-[var(--background-soft)] p-4">
                           <p className="font-semibold">{school.schoolName}</p>
-                          <p className="mt-1 text-sm text-[var(--muted)]">
+                          <p className="mt-1 text-sm text-[var(--foreground-soft)]">
                             {school.city}, {school.state} • {formatCollegePercent(school.admissionRate)} admit
                           </p>
-                          <p className="mt-1 text-sm text-[var(--muted)]">
+                          <p className="mt-1 text-sm text-[var(--foreground-soft)]">
                             SAT {school.satAverage ?? "—"} • {formatCollegeMoney(school.averageNetPrice)}
                           </p>
                           {school.matchedPrograms.length > 0 ? (
@@ -814,14 +814,14 @@ export default async function FamilyDetailPage({
                               {school.matchedPrograms.map((program) => (
                                 <span
                                   key={`${school.scorecardSchoolId}-${program.code}`}
-                                  className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]"
+                                  className="ui-chip"
                                 >
                                   {program.title}
                                 </span>
                               ))}
                             </div>
                           ) : null}
-                          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{suggestion.fitRationale}</p>
+                          <p className="mt-3 text-sm leading-7 text-[var(--foreground-soft)]">{suggestion.fitRationale}</p>
                           <form action={addFamilyCollegeListItemAction} className="mt-3">
                             <input type="hidden" name="familyId" value={family.id} />
                             <input type="hidden" name="familySlug" value={family.slug} />
@@ -850,7 +850,7 @@ export default async function FamilyDetailPage({
                             <button
                               type="submit"
                               disabled={!collegeWritesEnabled}
-                              className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                              className="ui-button-primary px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Add to current list
                             </button>
@@ -884,15 +884,15 @@ export default async function FamilyDetailPage({
         >
           <div className="space-y-3">
             {latestNotes.map((note) => (
-              <div key={note.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
+              <div key={note.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/82 p-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <p className="font-semibold">{note.summary}</p>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                  <span className="ui-chip">
                     {note.visibility}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{note.body}</p>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{note.body}</p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                   {note.authorRole.replace("_", " ")} • {formatDisplayDate(note.date)}
                 </p>
               </div>
@@ -909,12 +909,12 @@ export default async function FamilyDetailPage({
                   type="date"
                   name="date"
                   defaultValue={family.lastUpdatedDate}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 />
                 <select
                   name="authorRole"
                   defaultValue="strategist"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 >
                   <option value="strategist">Strategist</option>
                   <option value="ops">Ops</option>
@@ -926,12 +926,12 @@ export default async function FamilyDetailPage({
                 <input
                   name="noteType"
                   placeholder="Note type"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 />
                 <select
                   name="visibility"
                   defaultValue="internal"
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 >
                   <option value="internal">Internal</option>
                   <option value="parent">Parent</option>
@@ -940,18 +940,18 @@ export default async function FamilyDetailPage({
               <input
                 name="summary"
                 placeholder="Note summary"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                className={fieldClass}
               />
               <textarea
                 name="body"
                 rows={4}
                 placeholder="Detailed note"
-                className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                className={fieldClass}
               />
               <button
                 type="submit"
                 disabled={!isSupabaseConfigured()}
-                className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className={submitButtonClass}
               >
                 Save family note
               </button>
@@ -970,7 +970,7 @@ export default async function FamilyDetailPage({
           >
             <div className="grid gap-4 md:grid-cols-1">
               {family.artifactLinks.length === 0 ? (
-                <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm text-[var(--muted)]">
+                <div className="rounded-[1.5rem] bg-white/82 p-4 text-sm text-[var(--foreground-soft)]">
                   No family-wide artifacts yet.
                 </div>
               ) : (
@@ -980,10 +980,10 @@ export default async function FamilyDetailPage({
                     href={artifact.linkUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4 transition hover:bg-white"
+                    className="rounded-[1.5rem] border border-[var(--border)] bg-white/82 p-4 transition hover:bg-white"
                   >
                     <p className="font-semibold">{artifact.artifactName}</p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">
+                    <p className="mt-2 text-sm text-[var(--foreground-soft)]">
                       {artifact.artifactType.replace("_", " ")} • {artifact.owner}
                     </p>
                   </a>
@@ -1000,12 +1000,12 @@ export default async function FamilyDetailPage({
                   <input
                     name="artifactName"
                     placeholder="Artifact name"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <select
                     name="artifactType"
                     defaultValue="drive_folder"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   >
                     <option value="drive_folder">Drive folder</option>
                     <option value="doc">Doc</option>
@@ -1017,29 +1017,29 @@ export default async function FamilyDetailPage({
                 <input
                   name="linkUrl"
                   placeholder="https://..."
-                  className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                  className={fieldClass}
                 />
                 <div className="grid gap-4 md:grid-cols-2">
                   <input
                     type="date"
                     name="uploadDate"
                     defaultValue={family.lastUpdatedDate}
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                   <input
                     name="owner"
                     placeholder="Owner"
-                    className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 outline-none"
+                    className={fieldClass}
                   />
                 </div>
-                <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                <label className={checkboxLabelClass}>
                   <input type="checkbox" name="parentVisible" />
                   Parent visible
                 </label>
                 <button
                   type="submit"
                   disabled={!isSupabaseConfigured()}
-                  className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className={submitButtonClass}
                 >
                   Save family artifact
                 </button>
@@ -1059,7 +1059,7 @@ export default async function FamilyDetailPage({
         >
           <div className="grid gap-4 xl:grid-cols-2">
             {archiveSummaries.length === 0 ? (
-              <div className="rounded-[1.5rem] bg-white/70 p-4 text-sm text-[var(--muted)]">
+              <div className="rounded-[1.5rem] bg-white/82 p-4 text-sm text-[var(--foreground-soft)]">
                 No prior monthly summaries are archived yet.
               </div>
             ) : (
@@ -1067,11 +1067,11 @@ export default async function FamilyDetailPage({
                 .sort((left, right) => right.reportingMonth.localeCompare(left.reportingMonth))
                 .map((summary) => (
                   <div key={summary.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
                       {summary.studentName} • {formatDisplayDate(summary.reportingMonth)}
                     </p>
                     <p className="mt-3 font-semibold">{summary.biggestWin}</p>
-                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{summary.biggestRisk}</p>
+                    <p className="mt-2 text-sm leading-7 text-[var(--foreground-soft)]">{summary.biggestRisk}</p>
                   </div>
                 ))
             )}
