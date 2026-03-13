@@ -3,13 +3,15 @@ import { ArrowRight, Compass, LockKeyhole, NotebookTabs, Sparkles, Users } from 
 import { InternalSurfaceHero } from "@/components/shared/internal-surface-hero";
 import { MetricCard } from "@/components/shared/metric-card";
 import { SectionCard } from "@/components/shared/section-card";
-import { getPreviewDashboardSnapshot, listPreviewFamilies } from "@/lib/db/queries";
+import { getInternalDashboardSnapshot, listInternalFamilies } from "@/lib/db/queries";
+import { requireInternalAccess } from "@/lib/auth/session";
 import { getAppModeLabel } from "@/lib/auth/config";
 
 export default async function Home() {
+  const actor = await requireInternalAccess("/");
   const [snapshot, families] = await Promise.all([
-    getPreviewDashboardSnapshot(),
-    listPreviewFamilies({ deadlineWindow: "30" }),
+    getInternalDashboardSnapshot(actor),
+    listInternalFamilies(actor, { deadlineWindow: "30" }),
   ]);
 
   return (
