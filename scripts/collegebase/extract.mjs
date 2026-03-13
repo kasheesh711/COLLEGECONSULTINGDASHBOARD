@@ -595,7 +595,6 @@ function cloneAtlasProfileToTemp() {
 
 async function launchAtlasBackedBrowser(profileDirectory, tempRoot) {
   const context = await chromium.launchPersistentContext(tempRoot, {
-    channel: "chrome",
     headless: false,
     args: [`--profile-directory=${profileDirectory}`],
     viewport: { width: 1600, height: 1200 },
